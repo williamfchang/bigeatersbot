@@ -1,0 +1,32 @@
+{
+  "name": "bigeatersbot",
+  "version": "1.0.0",
+  "description": "A discord bot for whatever I want",
+  "type": "module",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "wrangler dev",
+    "fix": "eslint --fix '**/*.js'",
+    "lint": "eslint '**/*.js'",
+    "register": "node src/register.js",
+    "publish": "wrangler deploy"
+  },
+  "keywords": [],
+  "author": "William Chang",
+  "license": "MIT",
+  "dependencies": {
+    "discord-interactions": "^4.0.0",
+    "itty-router": "^5.0.9"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.1.1",
+    "dotenv": "^16.0.3",
+    "eslint": "^9.1.0",
+    "eslint-config-prettier": "^10.0.2",
+    "eslint-plugin-prettier": "^5.1.3",
+    "globals": "^16.0.0",
+    "prettier": "^3.2.5",
+    "wrangler": "^4.42.2"
+  }
+}
