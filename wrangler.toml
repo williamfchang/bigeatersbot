@@ -6,3 +6,12 @@ compatibility_date="2023-05-18"
 # DISCORD_TOKEN
 # DISCORD_PUBLIC_KEY
 # DISCORD_APPLICATION_ID
+
+[observability]
+enabled = true
+head_sampling_rate = 1 # optional. default = 1.
+
+[[d1_databases]]
+binding = "vitals-stock-market"
+database_name = "vitals-stock-market"
+database_id = "03abd590-75b8-4d1d-9cce-d523aaf3a20e"
