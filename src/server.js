@@ -8,10 +8,10 @@ import {
   InteractionType,
   verifyKey,
 } from 'discord-interactions';
-import { HELLO_WORLD_COMMAND } from './commands.js';
+import { HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
 import { InteractionResponseFlags } from 'discord-interactions';
 
-import { getUserId } from './util.js';
+import * as util from './util.js';
 
 class JsonResponse extends Response {
   constructor(body, init) {
@@ -42,6 +42,14 @@ router.get('/d1-test', async (request, env) => {
   return results;
 });
 
+// 1) Query parameter: /hello?name=william
+router.get('/hello', (request, env) => {
+  const url = new URL(request.url);
+  const name = url.searchParams.get('name') || 'world';
+  const arr = JSON.parse(url.searchParams.get('data')) || [];
+  return new JsonResponse({ message: `Hello, ${name}! Length of data is ${arr.length}` });
+});
+
 /**
  * Main route for all requests sent from Discord.  All incoming messages will
  * include a JSON payload described here:
@@ -65,18 +73,54 @@ router.post('/', async (request, env) => {
   }
 
   if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+    const db = env['vitals-stock-market']
+
     // Most user commands will come as `APPLICATION_COMMAND`.
     switch (interaction.data.name.toLowerCase()) {
       case HELLO_WORLD_COMMAND.name.toLowerCase(): {
         console.log('HELLO_WORLD_COMMAND received');
-        const db = env['vitals-stock-market']
+
         const discordUser = interaction.member.user;
-        const sqlId = await getUserId(db, discordUser.username);
+        const sqlId = await util.getUserId(db, discordUser.username);
 
         return new JsonResponse({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
             content: `hello world! <@${discordUser.id}> (${discordUser.username}), your user ID in the SQL database is ${sqlId}`,
+          },
+        });
+      }
+      case LEADERBOARD_COMMAND.name.toLowerCase(): {
+        console.log('LEADERBOARD_COMMAND received');
+
+        // let content = "test output";
+
+        const [cashPortfolios, stocksPortfolios] = await util.getPortfolios(db);
+
+        // Create leaderboard in order of most cash
+        let leaderboard = new Map();
+        for (const [index, row] of cashPortfolios.entries()) {
+            leaderboard.set(row.user_id, {'HP': row.amount});
+        }
+
+        // Add other stocks to the leaderboard
+        for (const [index, row] of stocksPortfolios.entries()) {
+            let user_portfolio = leaderboard.get(row.user_id);
+            user_portfolio[row.symbol] = row.amount;
+            leaderboard.set(row.user_id, user_portfolio);
+        }
+
+        // Create leaderboard output string
+        let content = "Leaderboard:\n";
+        for (const [key, value] of leaderboard) {
+            content += `1. <@${key}>: ${JSON.stringify(value)}\n`;
+        }
+        
+        return new JsonResponse({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: content,
+            flags: InteractionResponseFlags.EPHEMERAL,
           },
         });
       }
