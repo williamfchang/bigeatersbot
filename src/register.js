@@ -1,6 +1,10 @@
-import { HELLO_WORLD_COMMAND } from './commands.js';
+import * as commands from './commands.js';
 import dotenv from 'dotenv';
 import process from 'node:process';
+
+// List all commands here
+const all_commands = [commands.HELLO_WORLD_COMMAND, commands.LEADERBOARD_COMMAND, commands.GET_PRICE_COMMAND, commands.BUY_COMMAND, commands.SELL_COMMAND];
+
 
 /**
  * This file is meant to be run from the command line, and is not used by the
@@ -34,7 +38,7 @@ const response = await fetch(url, {
     Authorization: `Bot ${token}`,
   },
   method: 'PUT',
-  body: JSON.stringify([HELLO_WORLD_COMMAND]),
+  body: JSON.stringify(all_commands),
 });
 
 if (response.ok) {
