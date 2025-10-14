@@ -58,12 +58,12 @@ export async function getPortfolios(db) {
 }
 
 // With portfolio info, create leaderboard output
-export async function getLeaderboard(cashPortfolios, stockPortfolios) {
+export function getLeaderboard(cashPortfolios, stocksPortfolios) {
     // Create leaderboard in order of most cash
-    let leaderboard = new Map();
+    const leaderboard = new Map();
     for (const [index, row] of cashPortfolios.entries()) {
         leaderboard.set(row.user_id, {'HP': row.amount});
-    }
+    } 
 
     // Add other stocks to the leaderboard
     for (const [index, row] of stocksPortfolios.entries()) {
@@ -78,7 +78,7 @@ export async function getLeaderboard(cashPortfolios, stockPortfolios) {
         output += `1. <@${key}>: ${JSON.stringify(value)}\n`;
     }
 
-    return content
+    return output;
 }
 
 // Get text output of stock price history
@@ -87,7 +87,7 @@ export async function getStockPrice(db, symbol) {
     // Get curr time and time 24 hours ago (starting at top of the hour)
     const currDate = new Date();
     const dateOneDayAgo = new Date(currDate);
-    dateOneDayAgo.setDate(dateOneDayAgo.getDate() - 1);
+    dateOneDayAgo.setHours(dateOneDayAgo.getHours() - 24);
     dateOneDayAgo.setMinutes(0);
 
     // Get values from db
@@ -107,11 +107,11 @@ export async function getStockPrice(db, symbol) {
         currHour = String(currHour).padStart(2, '0')
 
         // get values for this hour
-        let arrForCurrHour = results.slice(i, i+20).map(entry => String(entry.value));
+        let arrForCurrHour = results.slice(i, i+dataPointsPerHour).map(entry => String(entry.value));
         arrForCurrHour = arrForCurrHour.map(s => s.padStart(3, '0'))
 
         // put it all together
-        const strForCurrHour = `Hour ${currHour}: ${arrForCurrHour.join(' - ')}\n`
+        const strForCurrHour = `Hour ${currHour}: ${arrForCurrHour.join(' ')}\n`
         output += strForCurrHour
     }
 

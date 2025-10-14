@@ -72,10 +72,25 @@ router.get('/manual-upload-data', async (request, env) => {
 
 // Testing grounds (get stock price)
 router.get('/testing', async (request, env) => {
-    const result = await util.getStockPrice(env['vitals-stock-market'], 'WFC-BG')
-    return new JsonResponse({ message: result });
+  const db = env['vitals-stock-market']
+  const result = await util.getStockPrice(db, 'WFC-BG')
+  // const [cash, stocks] = await util.getPortfolios(db);
+  // const result = util.getLeaderboard(cash, stocks);
+  return new JsonResponse({ message: result });
 })
 
+
+function createBotResponse(content, ephemeral = false) {
+  let data = { content: content }
+  if (ephemeral) {
+    data.flags = InteractionResponseFlags.EPHEMERAL
+  }
+
+  return new JsonResponse({
+    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: data
+  });
+}
 
 /**
  * Main route for all requests sent from Discord.  All incoming messages will
@@ -109,52 +124,23 @@ router.post('/', async (request, env) => {
 
         const discordUser = interaction.member.user;
 
-        return new JsonResponse({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: `hello, <@${discordUser.id}>!`,
-          },
-        });
+        return createBotResponse(`hello, <@${discordUser.id}>! the time is ${new Date()}`);
       }
       case LEADERBOARD_COMMAND.name.toLowerCase(): {
         console.log('LEADERBOARD_COMMAND received');
 
         const [cashPortfolios, stocksPortfolios] = await util.getPortfolios(db);
-        const content = util.getLeaderboard(cashPortfolios, stocksPortfolios)
+        const content = util.getLeaderboard(cashPortfolios, stocksPortfolios);
         
-        return new JsonResponse({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: content,
-            flags: InteractionResponseFlags.EPHEMERAL,
-          },
-        });
+        return createBotResponse(content, true)
       }
       case GET_PRICE_COMMAND.name.toLowerCase(): {
         console.log('GET_PRICE_COMMAND received');
-        
-        // TODO: implement all option
-        if (interaction.options.length > 0) {
-            return new JsonResponse({
-              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-              data: {
-                content: 'options not supported yet for this command',
-                flags: InteractionResponseFlags.EPHEMERAL,
-              },
-            });
-        }
 
-        // Get stock prices string
         const symbol = 'WFC-BG'; // TODO: support multiple symbols, currently hardcoded
-        content = await util.getStockPrice(env['vitals-stock-market'], symbol)
+        const content = await util.getStockPrice(db, symbol);
         
-        return new JsonResponse({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: {
-            content: content,
-            flags: InteractionResponseFlags.EPHEMERAL,
-          },
-        });
+        return createBotResponse(content, true)
       }
       default:
         return new JsonResponse({ error: 'Unknown Type' }, { status: 400 });
