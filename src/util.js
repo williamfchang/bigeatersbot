@@ -110,7 +110,7 @@ export async function getStockPrice(db, symbol) {
         const firstTimestamp = new Date(results[i].timestamp);
        
         // get hour
-        let currHour = (24 + firstTimestamp.getHours() - TIMEZONE_OFFSET) % 24;
+        let currHour = (24 + firstTimestamp.getHours() - c.TIMEZONE_OFFSET) % 24;
         currHour = String(currHour).padStart(2, '0')
 
         // get values for this hour
