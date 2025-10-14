@@ -108,12 +108,11 @@ router.post('/', async (request, env) => {
         console.log('HELLO_WORLD_COMMAND received');
 
         const discordUser = interaction.member.user;
-        const sqlId = await util.getUserId(db, discordUser.username);
 
         return new JsonResponse({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
           data: {
-            content: `hello world! <@${discordUser.id}> (${discordUser.username}), your user ID in the SQL database is ${sqlId}`,
+            content: `hello, <@${discordUser.id}>!`,
           },
         });
       }

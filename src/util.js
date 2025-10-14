@@ -1,12 +1,5 @@
 import * as c from './constants.js';
 
-// get SQL user id from discord username
-export async function getUserId(db, username) {
-    const { results } = await db.prepare("SELECT * FROM users WHERE discord_username = ?")
-        .bind(username).run();
-    return results[0]?.user_id || -1;
-}
-
 // Write to db
 export async function writeStockValuesToDb(db, symbol, startTime, values) {
     // Error checking
