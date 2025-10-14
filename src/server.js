@@ -10,8 +10,7 @@ import {
   verifyKey,
 } from 'discord-interactions';
 
-import { HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
-
+import { GET_PRICE_COMMAND, HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
 import * as util from './util.js';
 
 class JsonResponse extends Response {
@@ -34,14 +33,6 @@ router.get('/', (request, env) => {
   return new Response(`👋 BigEaterBot checking in! App ID: ${env.DISCORD_APPLICATION_ID}`);
 });
 
-// Query parameter: /hello?name=william&data=[]
-router.get('/hello', (request, env) => {
-  const url = new URL(request.url);
-  const name = url.searchParams.get('name') || 'world';
-  const arr = JSON.parse(url.searchParams.get('data')) || [];
-  return new JsonResponse({ message: `Hello, ${name}! Length of data is ${arr.length}` });
-});
-
 // Parameters: password=****&startTime=2025-10-13T23:30:00-07:00&values=[]
 router.get('/upload-data', async (request, env) => {
   const d1ModifyPassword = env.D1_MODIFY_PASSWORD;
@@ -60,7 +51,7 @@ router.get('/upload-data', async (request, env) => {
   return new JsonResponse({ message: result });
 });
 
-// Parameters: password=****
+// Manual data upload, aka harcode the values for upload here. Parameters: password=****
 router.get('/manual-upload-data', async (request, env) => {
   const d1ModifyPassword = env.D1_MODIFY_PASSWORD;
   const url = new URL(request.url);
@@ -77,6 +68,12 @@ router.get('/manual-upload-data', async (request, env) => {
   
   const result = await util.writeStockValuesToDb(env['vitals-stock-market'], symbol, startTime, values);
   return new JsonResponse({ message: result });
+})
+
+// Testing grounds (get stock price)
+router.get('/testing', async (request, env) => {
+    const result = await util.getStockPrice(env['vitals-stock-market'], 'WFC-BG')
+    return new JsonResponse({ message: result });
 })
 
 
@@ -123,28 +120,34 @@ router.post('/', async (request, env) => {
       case LEADERBOARD_COMMAND.name.toLowerCase(): {
         console.log('LEADERBOARD_COMMAND received');
 
-        // let content = "test output";
-
         const [cashPortfolios, stocksPortfolios] = await util.getPortfolios(db);
-
-        // Create leaderboard in order of most cash
-        let leaderboard = new Map();
-        for (const [index, row] of cashPortfolios.entries()) {
-            leaderboard.set(row.user_id, {'HP': row.amount});
+        const content = util.getLeaderboard(cashPortfolios, stocksPortfolios)
+        
+        return new JsonResponse({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: content,
+            flags: InteractionResponseFlags.EPHEMERAL,
+          },
+        });
+      }
+      case GET_PRICE_COMMAND.name.toLowerCase(): {
+        console.log('GET_PRICE_COMMAND received');
+        
+        // TODO: implement all option
+        if (interaction.options.length > 0) {
+            return new JsonResponse({
+              type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+              data: {
+                content: 'options not supported yet for this command',
+                flags: InteractionResponseFlags.EPHEMERAL,
+              },
+            });
         }
 
-        // Add other stocks to the leaderboard
-        for (const [index, row] of stocksPortfolios.entries()) {
-            let user_portfolio = leaderboard.get(row.user_id);
-            user_portfolio[row.symbol] = row.amount;
-            leaderboard.set(row.user_id, user_portfolio);
-        }
-
-        // Create leaderboard output string
-        let content = "Leaderboard:\n";
-        for (const [key, value] of leaderboard) {
-            content += `1. <@${key}>: ${JSON.stringify(value)}\n`;
-        }
+        // Get stock prices string
+        const symbol = 'WFC-BG'; // TODO: support multiple symbols, currently hardcoded
+        content = await util.getStockPrice(env['vitals-stock-market'], symbol)
         
         return new JsonResponse({
           type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
