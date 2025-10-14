@@ -4,12 +4,13 @@
 
 import { AutoRouter } from 'itty-router';
 import {
+  InteractionResponseFlags,
   InteractionResponseType,
   InteractionType,
   verifyKey,
 } from 'discord-interactions';
+
 import { HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
-import { InteractionResponseFlags } from 'discord-interactions';
 
 import * as util from './util.js';
 
@@ -27,28 +28,57 @@ class JsonResponse extends Response {
 
 const router = AutoRouter();
 
-/**
- * A simple :wave: hello page to verify the worker is working.
- */
+
+// Homepage!
 router.get('/', (request, env) => {
   return new Response(`👋 BigEaterBot checking in! App ID: ${env.DISCORD_APPLICATION_ID}`);
 });
 
-// Test D1 database
-router.get('/d1-test', async (request, env) => {
-  const db = env['vitals-stock-market'];
-  const { results } = await db.prepare("SELECT * FROM users WHERE discordUsername = ?")
-    .bind("william.c7879").run();
-  return results;
-});
-
-// 1) Query parameter: /hello?name=william
+// Query parameter: /hello?name=william&data=[]
 router.get('/hello', (request, env) => {
   const url = new URL(request.url);
   const name = url.searchParams.get('name') || 'world';
   const arr = JSON.parse(url.searchParams.get('data')) || [];
   return new JsonResponse({ message: `Hello, ${name}! Length of data is ${arr.length}` });
 });
+
+// Parameters: password=****&startTime=2025-10-13T23:30:00-07:00&values=[]
+router.get('/upload-data', async (request, env) => {
+  const d1ModifyPassword = env.D1_MODIFY_PASSWORD;
+  const url = new URL(request.url);
+
+  const password = url.searchParams.get('password') || '';
+  if (password != d1ModifyPassword) {
+    return new JsonResponse({ error: `ur really gonna try this? please do not try to upload fake data lol` }, { status: 401 });
+  }
+
+  const symbol = 'WFC-BG'; // TODO: support multiple symbols, currently hardcoded
+  const startTime = new Date(url.searchParams.get('startTime')) || '';
+  const values = JSON.parse(url.searchParams.get('values')) || [];
+
+  const result = await util.writeStockValuesToDb(env['vitals-stock-market'], symbol, startTime, values);
+  return new JsonResponse({ message: result });
+});
+
+// Parameters: password=****
+router.get('/manual-upload-data', async (request, env) => {
+  const d1ModifyPassword = env.D1_MODIFY_PASSWORD;
+  const url = new URL(request.url);
+
+  const password = url.searchParams.get('password') || '';
+  if (password != d1ModifyPassword) {
+    return new JsonResponse({ error: `this endpoint is for uploading hard coded data cuz i'm lazy` }, { status: 401 });
+  }
+
+  // hardcode values here
+  const symbol = 'WFC-BG';
+  const startTime = new Date('2025-10-09T19:35:22-07:00')
+  const values = []
+  
+  const result = await util.writeStockValuesToDb(env['vitals-stock-market'], symbol, startTime, values);
+  return new JsonResponse({ message: result });
+})
+
 
 /**
  * Main route for all requests sent from Discord.  All incoming messages will
@@ -73,7 +103,7 @@ router.post('/', async (request, env) => {
   }
 
   if (interaction.type === InteractionType.APPLICATION_COMMAND) {
-    const db = env['vitals-stock-market']
+    const db = env['vitals-stock-market'];
 
     // Most user commands will come as `APPLICATION_COMMAND`.
     switch (interaction.data.name.toLowerCase()) {

@@ -53,15 +53,18 @@ For two weeks October 2025 I have a glucose monitor. The glucose monitor data up
 |`/sell <num>`|Send sell order of `num` of units, for the current time. Your sell order will be executed once stock price updates. `num` <= 20|
 
 ### TODO (for me)
-- Register the discord commands
-- Create databases
+- Register the discord commands -> DONE
+- Create databases -> DONE
   - ~~users (user_id, discord_username)~~
   - orders (order_id, symbol, username, timestamp, action, amount, executed)
   - portfolios (username, symbol, amount) -> symbol: $CASH is earnings
   - stock_price (symbol, time, value)
 - Create functionality for each command
-  - 
+  - leaderboard -> DONE
+  - getprice
+  - buy
+  - sell
 - Create get endpoint for uploading data
-  - takes parameters stock, startTime, values
-  - stores any new data points in stockPrice
-  - executes any buy/sell orders for that period of time
+  - takes parameters stock, startTime, values -> done
+  - stores any new data points in stockPrice -> done
+  - executes any buy/sell orders for that period of time -> STILL TOOD
