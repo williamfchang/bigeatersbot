@@ -51,4 +51,4 @@ export const SELL_COMMAND = {
 export const GET_OPEN_ORDERS_COMMAND = {
   name: 'get-open-orders',
   description: 'Get your open orders',
-}
+};

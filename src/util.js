@@ -147,12 +147,19 @@ export async function newSellOrder(db, symbol, user_id, amount) {
 }
 
 // get a user's open orders
-export async function getOpenOrders(symbol, user_id) {
+export async function getOpenOrders(db, symbol, user_id) {
     const { results } = await db.prepare("SELECT * FROM orders WHERE symbol = ? AND user_id = ? AND executed = FALSE")
-        .bind(symbol, dateOneDayAgo.getTime(), currDate.getTime())
-        .run();
+        .bind(symbol, user_id)
+        .run()
     
-    return JSON.stringify(results);
+    let output = `Open orders for <@${user_id}>:\n`
+
+    for (const row of results) {
+        const date = new Date(row.timestamp)
+        output += `- $${row.symbol} @ ${getLocalTimeString(date)}: ${row.action.toUpperCase()} ${row.amount} shares\n`
+    }
+    
+    return output;
 }
 
 export async function executeOrdersInRange(symbol, startTime, endTime) {

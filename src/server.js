@@ -10,7 +10,7 @@ import {
   verifyKey,
 } from 'discord-interactions';
 
-import { BUY_COMMAND, GET_OPEN_ORDERS_COMMAND, GET_PRICE_COMMAND, HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
+import * as commands from './commands.js';
 import * as util from './util.js';
 
 class JsonResponse extends Response {
@@ -73,15 +73,14 @@ router.get('/manual-upload-data', async (request, env) => {
 router.get('/testing', async (request, env) => {
   const db = env['vitals-stock-market']
   
-  // const user_id = '12345'
-  // const amount = 15
-  // const content = await util.newBuyOrder(db, symbol, user_id, amount);
-  const content = "not testing anything right now"
+  const user_id = '150093212034269184'
+  const content = await util.getOpenOrders(db, symbol, user_id)
 
   return new JsonResponse({ message: content });
 })
 
 
+// Helper function to create json response
 function createBotResponse(content, ephemeral = false) {
   let data = { content: content }
   if (ephemeral) {
@@ -122,14 +121,14 @@ router.post('/', async (request, env) => {
 
     // Most user commands will come as `APPLICATION_COMMAND`.
     switch (interaction.data.name.toLowerCase()) {
-      case HELLO_WORLD_COMMAND.name.toLowerCase(): {
+      case commands.HELLO_WORLD_COMMAND.name.toLowerCase(): {
         console.log('HELLO_WORLD_COMMAND received');
 
         const discordUser = interaction.member.user;
 
         return createBotResponse(`hello, <@${discordUser.id}>! I'm still under construction, so far you can try /leaderboard (has fake data) and /getprice (outputs last 24 hours of stock prices in markdown. My code is here: https://github.com/williamfchang/bigeatersbot`);
       }
-      case LEADERBOARD_COMMAND.name.toLowerCase(): {
+      case commands.LEADERBOARD_COMMAND.name.toLowerCase(): {
         console.log('LEADERBOARD_COMMAND received');
 
         const [cashPortfolios, stocksPortfolios] = await util.getPortfolios(db);
@@ -137,14 +136,14 @@ router.post('/', async (request, env) => {
         
         return createBotResponse(content, true)
       }
-      case GET_PRICE_COMMAND.name.toLowerCase(): {
+      case commands.GET_PRICE_COMMAND.name.toLowerCase(): {
         console.log('GET_PRICE_COMMAND received');
 
         const content = await util.getStockPrice(db, symbol);
         
         return createBotResponse(content, true)
       }
-      case BUY_COMMAND.name.toLowerCase(): {
+      case commands.BUY_COMMAND.name.toLowerCase(): {
         console.log('BUY_COMMAND received');
 
         const amount = interaction.data.options[0].value;
@@ -153,7 +152,7 @@ router.post('/', async (request, env) => {
 
         return createBotResponse(content, false)
       }
-      case SELL_COMMAND.name.toLowerCase(): {
+      case commands.SELL_COMMAND.name.toLowerCase(): {
         console.log('SELL_COMMAND received');
 
         const amount = interaction.data.options[0].value;
@@ -162,10 +161,10 @@ router.post('/', async (request, env) => {
 
         return createBotResponse(content, false)
       }
-      case GET_OPEN_ORDERS_COMMAND.toLowerCase(): {
+      case commands.GET_OPEN_ORDERS_COMMAND.name.toLowerCase(): {
         console.log('GET_OPEN_ORDERS_COMMAND received');
 
-        const content = await util.getOpenOrders(symbol, user_id);
+        const content = await util.getOpenOrders(db, symbol, user_id);
 
         return createBotResponse(content, true)
       }
