@@ -18,9 +18,14 @@ $ npx wrangler secret put DISCORD_APPLICATION_ID
 $ npx wrangler secret put DISCORD_TEST_GUILD_ID # this might not be needed?
 ```
 
+To add new commands:
+1. Add to commands.js
+2. Add to register.js
+3. Implement in server.js
+4. Run `DISCORD_TOKEN=**** DISCORD_APPLICATION_ID=**** node src/register.js`
+
 To deploy the app:
-1. `DISCORD_TOKEN=**** DISCORD_APPLICATION_ID=**** node src/register.js` (if the commands changed)
-2. `npm run publish` -> this will publish to the Cloudflare worker!
+`npm run publish` -> this will publish to the Cloudflare worker!
 
 # Features
 ## Vitals stock market
@@ -47,10 +52,12 @@ For two weeks October 2025 I have a glucose monitor. The glucose monitor data up
 ### Commands
 |command|description|constraints|
 |-|-|-|
+|`/hello-world`|Outputs some info about the bot||
 |`/leaderboard`|Lists out every user, how many earnings they have, how many units they have||
-|`/getprice`|Returns stock price for last 24h||
+|`/get-price`|Returns stock price for last 24h||
 |`/buy <num>`|Send buy order of `num` of units, for the current time. Your buy order will be executed after ~3 hours, once the stock price gets updated for the buy time. Previous buy order for current time gets overwritten, if it already exists. |`num` <= 20|
-|`/sell <num>`|Send sell order of `num` of units, for the current time. Your sell order will be executed once stock price updates. Previous sell order for current time gets overwritten, if it already exists. |`num` <= 20|
+|`/sell <num>`|Send sell order of `num` of units, for the current time. Your sell order will be executed once stock price updates. Previous sell order for current time gets overwritten, if it already exists.|`num` <= 20. While you can make a sell order even if you don't have , the order may fail on execution.|
+|`/get-open-orders`|List your orders that haven't been executed yet||
 
 ### TODO (for me)
 - Register the discord commands -> DONE
@@ -67,4 +74,4 @@ For two weeks October 2025 I have a glucose monitor. The glucose monitor data up
 - Create get endpoint for uploading data
   - takes parameters stock, startTime, values -> done
   - stores any new data points in stockPrice -> done
-  - executes any buy/sell orders for that period of time -> STILL TOOD
+  - executes any buy/sell orders for that period of time -> STILL TODO

@@ -4,7 +4,7 @@
  */
 
 export const HELLO_WORLD_COMMAND = {
-  name: 'helloworld',
+  name: 'hello-world',
   description: 'Test command to respond with hello',
 };
 
@@ -14,7 +14,7 @@ export const LEADERBOARD_COMMAND = {
 }
 
 export const GET_PRICE_COMMAND = {
-  name: 'getprice',
+  name: 'get-price',
   description: 'Get the past 24 hours of the stock (or all history)',
 }
 
@@ -48,3 +48,7 @@ export const SELL_COMMAND = {
   ],
 };
 
+export const GET_OPEN_ORDERS_COMMAND = {
+  name: 'get-open-orders',
+  description: 'Get your open orders',
+}

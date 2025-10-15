@@ -118,7 +118,7 @@ export async function getStockPrice(db, symbol) {
     return '```\n' + output + '\n```';
 }
 
-// store buy order. round down to the nearest interval of 5 minutes
+// make buy order
 export async function newBuyOrder(db, symbol, user_id, amount) {
     const roundedDate = roundDownDateToNearestInterval(new Date());
 
@@ -132,6 +132,29 @@ export async function newBuyOrder(db, symbol, user_id, amount) {
     return `<@${user_id}>, your BUY order for ${amount} shares of $${symbol} has been submitted for ${roundedDateLocalTimeString}.`;
 }
 
+// make sell order
+export async function newSellOrder(db, symbol, user_id, amount) {
+    const roundedDate = roundDownDateToNearestInterval(new Date());
+
+    // create sell order. overwrite previous sell order if it exists
+    const { results } = await db.prepare('INSERT OR REPLACE INTO orders (symbol, user_id, timestamp, action, amount) VALUES (?, ?, ?, ?, ?)')
+        .bind(symbol, user_id, roundedDate.getTime(), 'sell', amount)
+        .run();
+
+    // output
+    const roundedDateLocalTimeString = getLocalTimeString(roundedDate)
+    return `<@${user_id}>, your SELL order for ${amount} shares of $${symbol} has been submitted for ${roundedDateLocalTimeString}.`;
+}
+
+// get a user's open orders
+export async function getOpenOrders(symbol, user_id) {
+    const { results } = await db.prepare("SELECT * FROM orders WHERE symbol = ? AND user_id = ? AND executed = FALSE")
+        .bind(symbol, dateOneDayAgo.getTime(), currDate.getTime())
+        .run();
+    
+    return JSON.stringify(results);
+}
+
 export async function executeOrdersInRange(symbol, startTime, endTime) {
     // Retrieve orders in range [startTime, endTime)
     startTime = removeSeconds(startTime)
@@ -141,6 +164,8 @@ export async function executeOrdersInRange(symbol, startTime, endTime) {
     const { results } = await db.prepare('SELECT * FROM orders WHERE symbol = ? AND timestamp >= ? AND timestamp < ?')
         .bind(symbol, startTime.getTime(), endTime.getTime())
         .run();
+    
+    // do more stuff
     
     return JSON.stringify(results);
 }

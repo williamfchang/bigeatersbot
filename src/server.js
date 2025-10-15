@@ -10,7 +10,7 @@ import {
   verifyKey,
 } from 'discord-interactions';
 
-import { BUY_COMMAND, GET_PRICE_COMMAND, HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
+import { BUY_COMMAND, GET_OPEN_ORDERS_COMMAND, GET_PRICE_COMMAND, HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
 import * as util from './util.js';
 
 class JsonResponse extends Response {
@@ -118,6 +118,7 @@ router.post('/', async (request, env) => {
 
   if (interaction.type === InteractionType.APPLICATION_COMMAND) {
     const db = env['vitals-stock-market'];
+    const user_id = interaction.member.user.id;
 
     // Most user commands will come as `APPLICATION_COMMAND`.
     switch (interaction.data.name.toLowerCase()) {
@@ -146,12 +147,27 @@ router.post('/', async (request, env) => {
       case BUY_COMMAND.name.toLowerCase(): {
         console.log('BUY_COMMAND received');
 
-        const user_id = interaction.member.user.id;
         const amount = interaction.data.options[0].value;
 
         const content = await util.newBuyOrder(db, symbol, user_id, amount);
 
         return createBotResponse(content, false)
+      }
+      case SELL_COMMAND.name.toLowerCase(): {
+        console.log('SELL_COMMAND received');
+
+        const amount = interaction.data.options[0].value;
+
+        const content = await util.newSellOrder(db, symbol, user_id, amount);
+
+        return createBotResponse(content, false)
+      }
+      case GET_OPEN_ORDERS_COMMAND.toLowerCase(): {
+        console.log('GET_OPEN_ORDERS_COMMAND received');
+
+        const content = await util.getOpenOrders(symbol, user_id);
+
+        return createBotResponse(content, true)
       }
       default:
         return new JsonResponse({ error: 'Unknown Type' }, { status: 400 });

@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 import process from 'node:process';
 
 // List all commands here
-const all_commands = [commands.HELLO_WORLD_COMMAND, commands.LEADERBOARD_COMMAND, commands.GET_PRICE_COMMAND, commands.BUY_COMMAND, commands.SELL_COMMAND];
+const all_commands = [commands.HELLO_WORLD_COMMAND, commands.LEADERBOARD_COMMAND, commands.GET_PRICE_COMMAND,
+  commands.BUY_COMMAND, commands.SELL_COMMAND, commands.GET_OPEN_ORDERS_COMMAND];
 
 
 /**
