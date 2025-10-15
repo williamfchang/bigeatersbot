@@ -127,12 +127,9 @@ router.post('/', async (request, env) => {
 
         return createBotResponse(
           `hello, <@${discordUser.id}>!
-
-          Bot progress: almost functionally complete -- you can now send in buy/sell orders! However I still need to write the logic that executes the orders and calculates your gains (hopefully by EOD 10/15).
-          
-          TLDR for using the bot: There's a 3 hour delay on data upload. Let's say it's 3pm, you decide to buy 10 shares. Then later that day when the blood glucose measurement for 3pm is uploaded, the order will execute.
-          
-          See README for more details: https://github.com/williamfchang/bigeatersbot`);
+- **TLDR for bot**: There's a 3 hour delay on data upload. Let's say it's 3pm, you decide to buy 10 "shares". Then later that day, when the blood glucose measurement for 3pm is uploaded, the order will execute at that "price". The person with the most gains by Thursday 10/23 will get a prize (TBD)!
+  - See README for more details: https://github.com/williamfchang/bigeatersbot
+- **Bot progress**: almost functionally complete -- you can start using the bot (aka buy/sell)! I still need to write the logic that executes the orders and calculates your gains (hopefully by EOD 10/15) so you won't see any leaderboard updates until then.`);
       }
       case commands.LEADERBOARD_COMMAND.name.toLowerCase(): {
         console.log('LEADERBOARD_COMMAND received');
