@@ -125,7 +125,14 @@ router.post('/', async (request, env) => {
 
         const discordUser = interaction.member.user;
 
-        return createBotResponse(`hello, <@${discordUser.id}>! I'm still under construction, so far you can try /leaderboard (has fake data) and /getprice (outputs last 24 hours of stock prices in markdown. My code is here: https://github.com/williamfchang/bigeatersbot`);
+        return createBotResponse(
+          `hello, <@${discordUser.id}>!
+
+          Bot progress: almost functionally complete -- you can now send in buy/sell orders! However I still need to write the logic that executes the orders and calculates your gains (hopefully by EOD 10/15).
+          
+          TLDR for using the bot: There's a 3 hour delay on data upload. Let's say it's 3pm, you decide to buy 10 shares. Then later that day when the blood glucose measurement for 3pm is uploaded, the order will execute.
+          
+          See README for more details: https://github.com/williamfchang/bigeatersbot`);
       }
       case commands.LEADERBOARD_COMMAND.name.toLowerCase(): {
         console.log('LEADERBOARD_COMMAND received');

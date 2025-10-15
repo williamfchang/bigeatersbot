@@ -31,7 +31,9 @@ To deploy the app:
 ## Vitals stock market
 Imagine if your body's vitals could be traded on the stock market! idk stock market terminology that well so the actual implementation here might not be "stocks".
 
-For two weeks October 2025 I have a glucose monitor. The glucose monitor data uploads to Apple Health with 5-minute frequency but on a 3 hour delay. Users can bet on the value of my blood glucose at a given time as follows:
+TLDR: There's a 3 hour delay on data upload. Let's say it's 3pm, you decide to buy 10 shares. Then later that day when the blood glucose measurement for 3pm is uploaded, the order will execute.
+
+For a more detailed description: For two weeks October 2025 I have a glucose monitor. The glucose monitor data uploads to Apple Health with 5-minute frequency but on a 3 hour delay. Users can bet on the value of my blood glucose at a given time as follows:
 - Trading
     - When you decide to buy/sell the stock, it will be for what the stock costs at the current time (e.g. you buy 5 units at 6pm)
     - Once the data gets uploaded for that time (e.g. the glucose monitor reading at 6pm), the buy/sell order is executed
@@ -60,6 +62,13 @@ For two weeks October 2025 I have a glucose monitor. The glucose monitor data up
 |`/get-open-orders`|List your orders that haven't been executed yet||
 
 ### TODO (for me)
+- execute any buy/sell orders for new data upload
+  - test this in a test table!!
+- Improvements
+  - better leaderboard output
+  - create graph for glucose values
+
+### old TODO
 - Register the discord commands -> DONE
 - Create databases -> DONE
   - ~~users (user_id, discord_username)~~
@@ -70,8 +79,7 @@ For two weeks October 2025 I have a glucose monitor. The glucose monitor data up
   - leaderboard -> DONE
   - getprice -> DONE
   - buy -> DONE
-  - sell
+  - sell -> DONE
 - Create get endpoint for uploading data
   - takes parameters stock, startTime, values -> done
   - stores any new data points in stockPrice -> done
-  - executes any buy/sell orders for that period of time -> STILL TODO
