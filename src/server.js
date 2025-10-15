@@ -61,8 +61,7 @@ router.get('/manual-upload-data', async (request, env) => {
     return new JsonResponse({ error: `this endpoint is for uploading hard coded data cuz i'm lazy` }, { status: 401 });
   }
 
-  // hardcode values here
-  const startTime = new Date('2025-10-13T00:00:22-07:00')
+  const startTime = new Date('2025-10-09T19:35:22-07:00')
   const values = []
   
   const result = await util.writeStockValuesToDb(env['vitals-stock-market'], symbol, startTime, values);

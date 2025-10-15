@@ -17,7 +17,7 @@ export async function writeStockValuesToDb(db, symbol, startTime, values) {
     const latestTimestamp = latestTimestampResults[0]['MAX(timestamp)'] || -1; // if no data, default to -1 so all entries are added
 
     // Create list of entries
-    let currTime = new Date(startTime);
+    let currTime = new Date(removeSeconds(startTime));
     currTime.setMinutes(currTime.getMinutes() - c.DATA_UPLOAD_INTERVAL_MINUTES); // offset start time since we begin loop with increment
     const entries = [];
     for (const value of values) {
@@ -96,7 +96,7 @@ export async function getStockPrice(db, symbol) {
         .run();
 
     // Construct output
-    let output = `Stock price of ${symbol} since 24 hours ago (in PDT, data may be lagging):\n`
+    let output = `Stock price of ${symbol} in ${c.DATA_UPLOAD_INTERVAL_MINUTES} min increments (PDT):\n`
     const dataPointsPerHour = Math.floor(60/c.DATA_UPLOAD_INTERVAL_MINUTES)
 
     for (let i = 0; i < results.length; i += dataPointsPerHour) {
