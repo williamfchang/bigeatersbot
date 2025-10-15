@@ -82,7 +82,7 @@ export function getLeaderboard(cashPortfolios, stocksPortfolios) {
 }
 
 // Get text output of stock price history
-// TODO: currently hardcoded to 24 hours, and display in PDT (subtract 7)
+// TODO: currently hardcoded to 24 hours, and to PDT timezone
 export async function getStockPrice(db, symbol) {
     // Get curr time and time 24 hours ago (starting at top of the hour)
     const currDate = new Date();
@@ -100,20 +100,86 @@ export async function getStockPrice(db, symbol) {
     const dataPointsPerHour = Math.floor(60/c.DATA_UPLOAD_INTERVAL_MINUTES)
 
     for (let i = 0; i < results.length; i += dataPointsPerHour) {
-        const firstTimestamp = new Date(results[i].timestamp);
+        const firstDate = new Date(results[i].timestamp);
        
         // get hour
-        let currHour = (24 + firstTimestamp.getHours() - c.TIMEZONE_OFFSET) % 24;
-        currHour = String(currHour).padStart(2, '0')
+        let currHour = convertToLocalTime(firstDate).getHours()
+        currHour = firstDate.toLocaleTimeString([], { hour: "2-digit" })
 
         // get values for this hour
         let arrForCurrHour = results.slice(i, i+dataPointsPerHour).map(entry => String(entry.value));
         arrForCurrHour = arrForCurrHour.map(s => s.padStart(3, '0'))
 
         // put it all together
-        const strForCurrHour = `Hour ${currHour}: ${arrForCurrHour.join(' ')}\n`
+        const strForCurrHour = `${currHour}: ${arrForCurrHour.join(' ')}\n`
         output += strForCurrHour
     }
 
     return '```\n' + output + '\n```';
+}
+
+// store buy order. round down to the nearest interval of 5 minutes
+export async function newBuyOrder(db, symbol, user_id, amount) {
+    const roundedDate = roundDownDateToNearestInterval(new Date());
+
+    // create buy order. overwrite previous buy order if it exists
+    const { results } = await db.prepare('INSERT OR REPLACE INTO orders (symbol, user_id, timestamp, action, amount) VALUES (?, ?, ?, ?, ?)')
+        .bind(symbol, user_id, roundedDate.getTime(), 'buy', amount)
+        .run();
+
+    // output
+    const roundedDateLocalTimeString = getLocalTimeString(roundedDate)
+    return `<@${user_id}>, your BUY order for ${amount} shares of $${symbol} has been submitted for ${roundedDateLocalTimeString}.`;
+}
+
+export async function executeOrdersInRange(symbol, startTime, endTime) {
+    // Retrieve orders in range [startTime, endTime)
+    startTime = removeSeconds(startTime)
+    endTime = removeSeconds(endTime)
+    endTime.setMinutes(endTime.getMinutes() + 1);
+
+    const { results } = await db.prepare('SELECT * FROM orders WHERE symbol = ? AND timestamp >= ? AND timestamp < ?')
+        .bind(symbol, startTime.getTime(), endTime.getTime())
+        .run();
+    
+    return JSON.stringify(results);
+}
+
+// -- Date helper functions -- //
+// convert UTC to local time with offset.
+// TODO: this is currently hardcoded to PDT
+function convertToLocalTime(date) {
+    date.setHours(date.getHours() - c.PDT_OFFSET);
+    return date;
+}
+
+// show time in hours and minutes, in current timezone
+function getLocalTimeString(date) {
+    return convertToLocalTime(date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+}
+
+// check if two dates are in the same minute.
+// aka, 1:05:10 AM and 1:05:55 AM are both in the same minute 1:05 AM, but 1:05:55 AM and 1:06:00 AM are not
+function sameMinute(date1, date2) {
+    return (
+        date1.getFullYear() === date2.getFullYear() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getDate() === date2.getDate() &&
+        date1.getHours() === date2.getHours() &&
+        date1.getMinutes() === date2.getMinutes()
+    );
+}
+
+// interval i means data is uploaded every i minutes
+function roundDownDateToNearestInterval(date) {
+    const surplusMinutes = date.getMinutes() % c.DATA_UPLOAD_INTERVAL_MINUTES
+    date.setMinutes(date.getMinutes()-surplusMinutes)
+    return removeSeconds(date)
+}
+
+// set to XX:XX:00.000
+function removeSeconds(date) {
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
 }

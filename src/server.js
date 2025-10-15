@@ -10,7 +10,7 @@ import {
   verifyKey,
 } from 'discord-interactions';
 
-import { GET_PRICE_COMMAND, HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
+import { BUY_COMMAND, GET_PRICE_COMMAND, HELLO_WORLD_COMMAND, LEADERBOARD_COMMAND } from './commands.js';
 import * as util from './util.js';
 
 class JsonResponse extends Response {
@@ -26,6 +26,7 @@ class JsonResponse extends Response {
 }
 
 const router = AutoRouter();
+const symbol = 'WFC-BG'; // TODO: support multiple symbols, currently hardcoded
 
 
 // Homepage!
@@ -43,7 +44,6 @@ router.get('/upload-data', async (request, env) => {
     return new JsonResponse({ error: `ur really gonna try this? please do not try to upload fake data lol` }, { status: 401 });
   }
 
-  const symbol = 'WFC-BG'; // TODO: support multiple symbols, currently hardcoded
   const startTime = new Date(url.searchParams.get('startTime')) || '';
   const values = JSON.parse(url.searchParams.get('values')) || [];
 
@@ -62,8 +62,7 @@ router.get('/manual-upload-data', async (request, env) => {
   }
 
   // hardcode values here
-  const symbol = 'WFC-BG';
-  const startTime = new Date('2025-10-09T19:35:22-07:00')
+  const startTime = new Date('2025-10-13T00:00:22-07:00')
   const values = []
   
   const result = await util.writeStockValuesToDb(env['vitals-stock-market'], symbol, startTime, values);
@@ -73,10 +72,13 @@ router.get('/manual-upload-data', async (request, env) => {
 // Testing grounds (get stock price)
 router.get('/testing', async (request, env) => {
   const db = env['vitals-stock-market']
-  const result = await util.getStockPrice(db, 'WFC-BG')
-  // const [cash, stocks] = await util.getPortfolios(db);
-  // const result = util.getLeaderboard(cash, stocks);
-  return new JsonResponse({ message: result });
+  
+  // const user_id = '12345'
+  // const amount = 15
+  // const content = await util.newBuyOrder(db, symbol, user_id, amount);
+  const content = "not testing anything right now"
+
+  return new JsonResponse({ message: content });
 })
 
 
@@ -124,7 +126,7 @@ router.post('/', async (request, env) => {
 
         const discordUser = interaction.member.user;
 
-        return createBotResponse(`hello, <@${discordUser.id}>! the time is ${new Date()}`);
+        return createBotResponse(`hello, <@${discordUser.id}>! I'm still under construction, so far you can try /leaderboard (has fake data) and /getprice (outputs last 24 hours of stock prices in markdown. My code is here: https://github.com/williamfchang/bigeatersbot`);
       }
       case LEADERBOARD_COMMAND.name.toLowerCase(): {
         console.log('LEADERBOARD_COMMAND received');
@@ -137,10 +139,19 @@ router.post('/', async (request, env) => {
       case GET_PRICE_COMMAND.name.toLowerCase(): {
         console.log('GET_PRICE_COMMAND received');
 
-        const symbol = 'WFC-BG'; // TODO: support multiple symbols, currently hardcoded
         const content = await util.getStockPrice(db, symbol);
         
         return createBotResponse(content, true)
+      }
+      case BUY_COMMAND.name.toLowerCase(): {
+        console.log('BUY_COMMAND received');
+
+        const user_id = interaction.member.user.id;
+        const amount = interaction.data.options[0].value;
+
+        const content = await util.newBuyOrder(db, symbol, user_id, amount);
+
+        return createBotResponse(content, false)
       }
       default:
         return new JsonResponse({ error: 'Unknown Type' }, { status: 400 });

@@ -16,14 +16,6 @@ export const LEADERBOARD_COMMAND = {
 export const GET_PRICE_COMMAND = {
   name: 'getprice',
   description: 'Get the past 24 hours of the stock (or all history)',
-  options: [
-    {
-      name: 'all',
-      description: 'If you want all history',
-      type: 3, // STRING
-      required: false,
-    },
-  ],
 }
 
 export const BUY_COMMAND = {
@@ -32,9 +24,11 @@ export const BUY_COMMAND = {
   options: [
     {
       name: 'quantity',
-      description: 'The number of shares to buy',
+      description: 'The number of shares to buy (max 20)',
       type: 4, // INTEGER
       required: true,
+      min_value: 0,
+      max_value: 20
     },
   ],
 };
@@ -45,9 +39,11 @@ export const SELL_COMMAND = {
   options: [
     {
       name: 'quantity',
-      description: 'The number of shares to sell',
+      description: 'The number of shares to sell (max 20)',
       type: 4, // INTEGER
       required: true,
+      min_value: 0,
+      max_value: 20
     },
   ],
 };

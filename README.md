@@ -45,12 +45,12 @@ For two weeks October 2025 I have a glucose monitor. The glucose monitor data up
     - Also FYI the typical range is 70-140 mg/dl
 
 ### Commands
-|command|description|
-|-|-|
-|`/leaderboard`|Lists out every user, how many earnings they have, how many units they have|
-|`/getprice <all>`|Returns stock price for last 24h by default, or all price history|
-|`/buy <num>`|Send buy order of `num` of units, for the current time. Your buy order will be executed after ~3 hours, once the stock price gets updated for the buy time. `num` <= 20|
-|`/sell <num>`|Send sell order of `num` of units, for the current time. Your sell order will be executed once stock price updates. `num` <= 20|
+|command|description|constraints|
+|-|-|-|
+|`/leaderboard`|Lists out every user, how many earnings they have, how many units they have||
+|`/getprice`|Returns stock price for last 24h||
+|`/buy <num>`|Send buy order of `num` of units, for the current time. Your buy order will be executed after ~3 hours, once the stock price gets updated for the buy time. Previous buy order for current time gets overwritten, if it already exists. |`num` <= 20|
+|`/sell <num>`|Send sell order of `num` of units, for the current time. Your sell order will be executed once stock price updates. Previous sell order for current time gets overwritten, if it already exists. |`num` <= 20|
 
 ### TODO (for me)
 - Register the discord commands -> DONE
@@ -61,8 +61,8 @@ For two weeks October 2025 I have a glucose monitor. The glucose monitor data up
   - stock_price (symbol, time, value)
 - Create functionality for each command
   - leaderboard -> DONE
-  - getprice
-  - buy
+  - getprice -> DONE
+  - buy -> DONE
   - sell
 - Create get endpoint for uploading data
   - takes parameters stock, startTime, values -> done

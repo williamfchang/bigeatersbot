@@ -9,4 +9,4 @@ export const DATA_UPLOAD_INTERVAL_MINUTES = 5;
 export const MAX_LEADERBOARD_ENTRIES = 25;
 
 // Get price command
-export const TIMEZONE_OFFSET = 7;
+export const PDT_OFFSET = 7;
