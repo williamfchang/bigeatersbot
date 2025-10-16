@@ -224,7 +224,7 @@ export function getOrderExecutionSummary(filledOrdersPerUser, endTime, symbol) {
         const actionStr = action.toUpperCase().padStart(4, ' ');
         const numSharesStr = String(num_shares).padStart(2, '0');
 
-        userOrders += `${dateStr}: ${actionStr} ${numSharesStr} shares of $${symbol} at ${at_price}\n`;
+        userOrders += `${dateStr}: ${actionStr} ${numSharesStr} of $${symbol} @ ${at_price}\n`;
     }
     
     output += `<@${user_id}>:\n\`\`\`\n` + userOrders + '```\n'

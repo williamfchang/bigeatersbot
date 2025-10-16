@@ -37,7 +37,8 @@ router.get('/', (request, env) => {
 // This endpoint takes data to store to db, then executes any orders which we now have data for
 // Parameters: password=****&startTime=2025-10-13T23:30:00-07:00&values=[]
 router.get('/upload-data', async (request, env) => {
-  if (!passwordIsCorrect(request, env)) {
+  const url = new URL(request.url);
+  if (!passwordIsCorrect(url, env)) {
     return new JsonResponse({ error: `ur really gonna try this? please do not try to upload fake data lol` }, { status: 401 });
   }
 
@@ -50,7 +51,8 @@ router.get('/upload-data', async (request, env) => {
 
 // Manual data upload, aka harcode the values for upload here. Parameters: password=****
 router.get('/manual-upload-data', async (request, env) => {
-  if (!passwordIsCorrect(request, env)) {
+  const url = new URL(request.url);
+  if (!passwordIsCorrect(url, env)) {
     return new JsonResponse({ error: `this endpoint is for uploading hard coded data cuz i'm lazy` }, { status: 401 });
   }
 
@@ -63,7 +65,8 @@ router.get('/manual-upload-data', async (request, env) => {
 
 // Manually invoke order execution. Parameters: password=****
 router.get('/manual-order-execution', async (request, env) => {
-  if (!passwordIsCorrect(request, env)) {
+  const url = new URL(request.url);
+  if (!passwordIsCorrect(url, env)) {
     return new JsonResponse({ error: `this endpoint is for manually invoking order execution but u need password` }, { status: 401 });
   }
 
@@ -211,9 +214,8 @@ function createBotResponse(content, ephemeral = false) {
 }
 
 // Helper function to check password
-function passwordIsCorrect(request, env) {
+function passwordIsCorrect(url, env) {
   const d1ModifyPassword = env.D1_MODIFY_PASSWORD;
-  const url = new URL(request.url);
 
   const password = url.searchParams.get('password') || '';
   return password == d1ModifyPassword;
