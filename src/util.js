@@ -11,10 +11,7 @@ export async function writeStockValuesToDb(db, symbol, startTime, values) {
     }
 
     // Get latest timestamp in db
-    const { results: latestTimestampResults } = await db.prepare("SELECT MAX(timestamp) FROM stock_price WHERE symbol = ?")
-        .bind(symbol)
-        .run();
-    const latestTimestamp = latestTimestampResults[0]['MAX(timestamp)'] || -1; // if no data, default to -1 so all entries are added
+    const latestTimestamp = await getLatestTimestampForStockPriceData(db, symbol);
 
     // Create list of entries
     let currTime = new Date(removeSeconds(startTime));
@@ -47,35 +44,12 @@ export async function writeStockValuesToDb(db, symbol, startTime, values) {
     return sql;
 }
 
-// Return cash results and stocks results
-export async function getPortfolios(db) {
-    const { results: cashResults } = await db.prepare(`SELECT * FROM portfolios WHERE symbol = 'CASH' ORDER BY amount DESC LIMIT ${c.MAX_LEADERBOARD_ENTRIES}`)
-        .run();
-    const { results: stocksResults } = await db.prepare(`SELECT * FROM portfolios WHERE symbol != 'CASH' ORDER BY amount DESC LIMIT ${c.MAX_LEADERBOARD_ENTRIES*c.NUM_SYMBOLS}`)
-        .run();
-    
-    return [cashResults, stocksResults];
-}
-
 // With portfolio info, create leaderboard output
-export function getLeaderboard(cashPortfolios, stocksPortfolios) {
-    // Create leaderboard in order of most cash
-    const leaderboard = new Map();
-    for (const [index, row] of cashPortfolios.entries()) {
-        leaderboard.set(row.user_id, {'HP': row.amount});
-    } 
-
-    // Add other stocks to the leaderboard
-    for (const [index, row] of stocksPortfolios.entries()) {
-        let user_portfolio = leaderboard.get(row.user_id);
-        user_portfolio[row.symbol] = row.amount;
-        leaderboard.set(row.user_id, user_portfolio);
-    }
-
+export function getLeaderboard(portfolios) {
     // Create leaderboard output string
     let output = "Leaderboard:\n";
-    for (const [key, value] of leaderboard) {
-        output += `1. <@${key}>: ${JSON.stringify(value)}\n`;
+    for (const {user_id, symbol, num_shares, balance} of portfolios) {
+        output += `1. <@${user_id}>: \`${balance}\` profit / \`${num_shares}\` shares\n`;
     }
 
     return output;
@@ -118,64 +92,162 @@ export async function getStockPrice(db, symbol) {
     return '```\n' + output + '\n```';
 }
 
-// make buy order
-export async function newBuyOrder(db, symbol, user_id, amount) {
+// make buy order. We round down to the nearest 5th minute
+export async function newBuyOrder(db, symbol, user_id, num_shares) {
     const roundedDate = roundDownDateToNearestInterval(new Date());
 
     // create buy order. overwrite previous buy order if it exists
-    const { results } = await db.prepare('INSERT OR REPLACE INTO orders (symbol, user_id, timestamp, action, amount) VALUES (?, ?, ?, ?, ?)')
-        .bind(symbol, user_id, roundedDate.getTime(), 'buy', amount)
+    const { results } = await db.prepare('INSERT OR REPLACE INTO orders (user_id, symbol, timestamp, action, num_shares) VALUES (?, ?, ?, ?, ?)')
+        .bind(user_id, symbol, roundedDate.getTime(), 'buy', num_shares)
         .run();
 
     // output
     const roundedDateLocalTimeString = getLocalTimeString(roundedDate)
-    return `<@${user_id}>, your BUY order for ${amount} shares of $${symbol} has been submitted for ${roundedDateLocalTimeString}.`;
+    return `<@${user_id}>, your BUY order for ${num_shares} shares of $${symbol} has been submitted for ${roundedDateLocalTimeString}.`;
 }
 
-// make sell order
-export async function newSellOrder(db, symbol, user_id, amount) {
+// make sell order. We round down to the nearest 5th minute
+export async function newSellOrder(db, symbol, user_id, num_shares) {
     const roundedDate = roundDownDateToNearestInterval(new Date());
 
     // create sell order. overwrite previous sell order if it exists
-    const { results } = await db.prepare('INSERT OR REPLACE INTO orders (symbol, user_id, timestamp, action, amount) VALUES (?, ?, ?, ?, ?)')
-        .bind(symbol, user_id, roundedDate.getTime(), 'sell', amount)
+    const { results } = await db.prepare('INSERT OR REPLACE INTO orders (user_id, symbol, timestamp, action, num_shares) VALUES (?, ?, ?, ?, ?)')
+        .bind(user_id, symbol, roundedDate.getTime(), 'sell', num_shares)
         .run();
 
     // output
     const roundedDateLocalTimeString = getLocalTimeString(roundedDate)
-    return `<@${user_id}>, your SELL order for ${amount} shares of $${symbol} has been submitted for ${roundedDateLocalTimeString}.`;
+    return `<@${user_id}>, your SELL order for ${num_shares} shares of $${symbol} has been submitted for ${roundedDateLocalTimeString}.`;
 }
 
 // get a user's open orders
 export async function getOpenOrders(db, symbol, user_id) {
-    const { results } = await db.prepare("SELECT * FROM orders WHERE symbol = ? AND user_id = ? AND executed = FALSE")
-        .bind(symbol, user_id)
+    const { results } = await db.prepare("SELECT * FROM orders WHERE user_id = ? AND symbol = ? AND executed = FALSE")
+        .bind(user_id, symbol)
         .run()
     
     let output = `Open orders for <@${user_id}>:\n`
 
     for (const row of results) {
         const date = new Date(row.timestamp)
-        output += `- $${row.symbol} @ ${getLocalTimeString(date)}: ${row.action.toUpperCase()} ${row.amount} shares\n`
+        output += `- $${row.symbol} @ ${getLocalTimeString(date)}: ${row.action.toUpperCase()} ${row.num_shares} shares\n`
     }
     
     return output;
 }
 
-export async function executeOrdersInRange(symbol, startTime, endTime) {
-    // Retrieve orders in range [startTime, endTime)
-    startTime = removeSeconds(startTime)
-    endTime = removeSeconds(endTime)
-    endTime.setMinutes(endTime.getMinutes() + 1);
+// Execute orders before endTime. Note that both stock price timestamps and order timestamps are rounded to nearest 5th minute
+// TODO: only works for one stock symbol
+export async function executeOrdersAtOrBefore(db, symbol, endTime) {
+    // -- Setup -- //
+    // Retrieve open orders before endTime, ordered from earliest to most recent
+    const { results: openOrders } = await db.prepare('SELECT * FROM orders_test WHERE symbol = ? AND timestamp <= ? AND executed = 0 ORDER BY timestamp')
+        .bind(symbol, endTime.getTime())
+        .run(); // switchto orders
+    
+    if (openOrders.length == 0) {
+        return 'No open orders, returning';
+    }
+    
+    // Create some tracking variables
+    const cashPortfolios = await getPortfolios(db, symbol); // fixme
+    const portfolioPerUser = new Map(cashPortfolios.map(row => [row.user_id, {'num_shares': row.num_shares, 'balance': row.balance}])); // 1. maps from user to portfolio info
+    const filledOrdersPerUser = new Map(); // 2. maps from user to list of filled orders, and at what cost
 
-    const { results } = await db.prepare('SELECT * FROM orders WHERE symbol = ? AND timestamp >= ? AND timestamp < ?')
-        .bind(symbol, startTime.getTime(), endTime.getTime())
+    // -- Fulfill each order -- //
+    for (const openOrder of openOrders) {
+        // Variable declarations. num_shares may need to be modified when selling
+        const { symbol: _ , user_id, timestamp, action, num_shares: __, executed } = openOrder;
+        let num_shares = openOrder.num_shares;
+
+        // Populate tracking maps if needed
+        if (!portfolioPerUser.has(user_id)) {
+            portfolioPerUser.set(user_id, { num_shares: 0, balance: 0 });
+            await createPortfolioForUser(db, user_id, symbol); // also create portfolio for user in db
+        }
+        if (!filledOrdersPerUser.has(user_id)) {
+            filledOrdersPerUser.set(user_id, []);
+        }
+
+        // Get some variables
+        const stockPrice = await getStockPriceAtTimestamp(db, symbol, timestamp);
+        const userPortfolio = portfolioPerUser.get(user_id);
+        const numTotalShares = userPortfolio.num_shares;
+        const cost = stockPrice * num_shares;
+
+        // Buy/sell
+        if (action == 'buy') {
+            // Buy
+            userPortfolio.balance -= cost; // purchase using buy power
+            userPortfolio.num_shares += num_shares; // acquire this many shares
+            portfolioPerUser.set(user_id, userPortfolio);
+        }
+        else {
+            // Sell
+            let sharesToSell = num_shares;
+            if (numTotalShares < num_shares) { sharesToSell = numTotalShares; } // adjust shares to sell if needed
+
+            userPortfolio.num_shares -= sharesToSell; // sell this many shares
+            userPortfolio.balance += cost; // gain buy power
+            portfolioPerUser.set(user_id, userPortfolio);
+        }
+        
+        // Update filled orders map, then mark order fulfilled in db
+        const filled = filledOrdersPerUser.get(user_id);
+        filled.push({'timestamp': timestamp, 'action': action, 'num_shares': num_shares, 'at_price': stockPrice});
+        filledOrdersPerUser.set(user_id, filled);
+        // await db.prepare('UPDATE orders_test SET executed = 1 WHERE user_id = ? AND symbol = ? AND timestamp = ?')
+        //     .bind(symbol, user_id, timestamp)
+        //     .run(); // switchto orders
+
+        // Update portfolio in db
+        await db.prepare('UPDATE portfolios SET num_shares = ?, balance = ? WHERE user_id = ? AND symbol = ?')
+            .bind(portfolioPerUser.get(user_id).num_shares, portfolioPerUser.get(user_id).balance, user_id, symbol)
+            .run();
+    }
+
+    // -- Generate order execution summary -- //
+    let output = `Order execution summary (fulfilled open orders up until ${getLocalDateTimeString(endTime)}):\n`
+    output += JSON.stringify(Array.from(filledOrdersPerUser.entries()));
+    return output;
+}
+
+
+// -- General helper functions -- //
+// Start portfolio for a user
+export async function createPortfolioForUser(db, user_id, symbol) {
+    const { results } = await db.prepare("INSERT INTO portfolios (user_id, symbol, num_shares, balance) VALUES (?, ?, ?, ?)")
+        .bind(user_id, symbol, 0, 0)
         .run();
     
-    // do more stuff
-    
-    return JSON.stringify(results);
+    return results;
 }
+
+// Get all portfolios
+export async function getPortfolios(db, symbol) {
+    const { results } = await db.prepare(`SELECT * FROM portfolios WHERE symbol = ? ORDER BY balance DESC LIMIT ?`)
+        .bind(symbol, c.MAX_LEADERBOARD_ENTRIES)
+        .run();
+    
+    return results;
+}
+
+// Get the timestamp of the most recent stock price
+export async function getLatestTimestampForStockPriceData(db, symbol) {
+    const { results: latestTimestampResults } = await db.prepare("SELECT MAX(timestamp) FROM stock_price WHERE symbol = ?")
+        .bind(symbol)
+        .run();
+    return latestTimestampResults[0]['MAX(timestamp)'] || -1;
+}
+
+// Get stock price at timestamp
+export async function getStockPriceAtTimestamp(db, symbol, timestamp) {
+    const { results: stockPriceResults } = await db.prepare('SELECT * FROM stock_price WHERE symbol = ? AND timestamp = ?')
+        .bind(symbol, timestamp)
+        .run();
+    return stockPriceResults[0].value;
+}
+
 
 // -- Date helper functions -- //
 // convert UTC to local time with offset.
@@ -188,6 +260,11 @@ function convertToLocalTime(date) {
 // show time in hours and minutes, in current timezone
 function getLocalTimeString(date) {
     return convertToLocalTime(date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+}
+
+// get date and time in current timezone
+function getLocalDateTimeString(date) {
+    return date.toLocaleString([], {timeZone: 'America/Los_Angeles'});
 }
 
 // check if two dates are in the same minute.

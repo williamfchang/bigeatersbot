@@ -34,13 +34,10 @@ router.get('/', (request, env) => {
   return new Response(`👋 BigEaterBot checking in! App ID: ${env.DISCORD_APPLICATION_ID}`);
 });
 
+// This endpoint takes data to store to db, then executes any orders which we now have data for
 // Parameters: password=****&startTime=2025-10-13T23:30:00-07:00&values=[]
 router.get('/upload-data', async (request, env) => {
-  const d1ModifyPassword = env.D1_MODIFY_PASSWORD;
-  const url = new URL(request.url);
-
-  const password = url.searchParams.get('password') || '';
-  if (password != d1ModifyPassword) {
+  if (!passwordIsCorrect(request, env)) {
     return new JsonResponse({ error: `ur really gonna try this? please do not try to upload fake data lol` }, { status: 401 });
   }
 
@@ -53,18 +50,27 @@ router.get('/upload-data', async (request, env) => {
 
 // Manual data upload, aka harcode the values for upload here. Parameters: password=****
 router.get('/manual-upload-data', async (request, env) => {
-  const d1ModifyPassword = env.D1_MODIFY_PASSWORD;
-  const url = new URL(request.url);
-
-  const password = url.searchParams.get('password') || '';
-  if (password != d1ModifyPassword) {
+  if (!passwordIsCorrect(request, env)) {
     return new JsonResponse({ error: `this endpoint is for uploading hard coded data cuz i'm lazy` }, { status: 401 });
   }
 
-  const startTime = new Date('2025-10-09T19:35:22-07:00')
+  const startTime = new Date('2025-10-15T00:00:22-07:00')
   const values = []
   
   const result = await util.writeStockValuesToDb(env['vitals-stock-market'], symbol, startTime, values);
+  return new JsonResponse({ message: result });
+})
+
+// Manually invoke order execution. Parameters: password=****
+router.get('/manual-order-execution', async (request, env) => {
+  if (!passwordIsCorrect(request, env)) {
+    return new JsonResponse({ error: `this endpoint is for manually invoking order execution but u need password` }, { status: 401 });
+  }
+
+  const db = env['vitals-stock-market'];
+  const latestTimestamp = await util.getLatestTimestampForStockPriceData(db, symbol);
+  const result = await util.executeOrdersAtOrBefore(db, symbol, new Date(latestTimestamp));
+
   return new JsonResponse({ message: result });
 })
 
@@ -72,25 +78,13 @@ router.get('/manual-upload-data', async (request, env) => {
 router.get('/testing', async (request, env) => {
   const db = env['vitals-stock-market']
   
-  const user_id = '150093212034269184'
-  const content = await util.getOpenOrders(db, symbol, user_id)
+  const portfolios = await util.getPortfolios(db, symbol);
+  const content = util.getLeaderboard(portfolios);
 
   return new JsonResponse({ message: content });
 })
 
 
-// Helper function to create json response
-function createBotResponse(content, ephemeral = false) {
-  let data = { content: content }
-  if (ephemeral) {
-    data.flags = InteractionResponseFlags.EPHEMERAL
-  }
-
-  return new JsonResponse({
-    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-    data: data
-  });
-}
 
 /**
  * Main route for all requests sent from Discord.  All incoming messages will
@@ -134,8 +128,8 @@ router.post('/', async (request, env) => {
       case commands.LEADERBOARD_COMMAND.name.toLowerCase(): {
         console.log('LEADERBOARD_COMMAND received');
 
-        const [cashPortfolios, stocksPortfolios] = await util.getPortfolios(db);
-        const content = util.getLeaderboard(cashPortfolios, stocksPortfolios);
+        const portfolios = await util.getPortfolios(db, symbol);
+        const content = util.getLeaderboard(portfolios);
         
         return createBotResponse(content, true)
       }
@@ -195,6 +189,30 @@ async function verifyDiscordRequest(request, env) {
 
   return { interaction: JSON.parse(body), isValid: true };
 }
+
+// Helper function to create json response
+function createBotResponse(content, ephemeral = false) {
+  let data = { content: content }
+  if (ephemeral) {
+    data.flags = InteractionResponseFlags.EPHEMERAL
+  }
+
+  return new JsonResponse({
+    type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+    data: data
+  });
+}
+
+// Helper function to check password
+function passwordIsCorrect(request, env) {
+  const d1ModifyPassword = env.D1_MODIFY_PASSWORD;
+  const url = new URL(request.url);
+
+  const password = url.searchParams.get('password') || '';
+  return password == d1ModifyPassword;
+}
+
+
 
 const server = {
   verifyDiscordRequest,
