@@ -39,12 +39,10 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
     - Once the data gets uploaded for that time (e.g. the glucose monitor reading at 6pm), the buy/sell order is executed
         - Data upload isn't fully automated, so it may be delayed more than 3 hours (I need to manually press a button to get it uploaded)
 - Buying stock
-    - It doesn't cost anything to buy the stock
+    - When your buy order executes, you get the shares at the value (using your balance)
     - You can make buy order of maximum 20 shares per data point
-    - You then own the stock at the average cost of all the stocks you own
 - Selling stock
-    - When your sell order executes, your profit/loss is: `((current cost) - (average cost of your shares)) * (number of shares sold)`
-    - This goes to your total earnings
+    - When your sell order executes, your shares sell at the given value which goes into your balance
 - Glucose monitoring extra details
     - There is a running leaderboard, which orders everyone by amount of earnings
     - For the glucose monitor -- trading ends Oct 23 2025 (because that's when my glucose monitor expires lol)
@@ -57,13 +55,14 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
 |`/hello-world`|Outputs some info about the bot||
 |`/leaderboard`|Lists out every user, how many earnings they have, how many shares they have||
 |`/get-price`|Returns stock price for last 24h||
-|`/buy <num>`|Send buy order of `num` of shares, for the current time. Your buy order will be executed after ~3 hours, once the stock price gets updated for the buy time. Previous buy order for current time gets overwritten, if it already exists. |`num` <= 20|
-|`/sell <num>`|Send sell order of `num` of shares, for the current time. Your sell order will be executed once stock price updates. Previous sell order for current time gets overwritten, if it already exists.|`num` <= 20. While you can make the sell order even if you don't enough shares, the order would fail on execution.|
+|`/buy <num>`|Send buy order of `num` of shares, for the current time. Your buy order will be executed after ~3 hours, once the stock price gets updated for the buy time.|`num` <= 20. Only one buy/sell order can exist for a given 5-min period (aka the last order you made will be the one that's executed)|
+|`/sell <num>`|Send sell order of `num` of shares, for the current time. Your sell order will be executed once stock price updates.|`num` <= 20. While you can make the sell order even if you don't enough shares, the order would fail on execution.|
 |`/get-open-orders`|List your orders that haven't been executed yet||
 
 ### TODO (for me)
-- execute any buy/sell orders for new data upload
-  - test this in a test table!!
+- Trading limit changes
+  - trading window 10am-2am
+  - 100 shares can be bought per day (trading window)
 - Improvements
   - better leaderboard output
   - create graph for glucose values
@@ -83,3 +82,5 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
 - Create get endpoint for uploading data
   - takes parameters stock, startTime, values -> done
   - stores any new data points in stockPrice -> done
+- execute any buy/sell orders for new data upload
+  - test this in a test table!!

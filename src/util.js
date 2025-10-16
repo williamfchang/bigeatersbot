@@ -146,7 +146,7 @@ export async function executeOrdersAtOrBefore(db, symbol, endTime) {
         .run();
     
     if (openOrders.length == 0) {
-        return 'No open orders, returning';
+        return 'No open orders that can be fulfilled';
     }
     
     // Create some tracking variables
@@ -211,9 +211,27 @@ export async function executeOrdersAtOrBefore(db, symbol, endTime) {
     }
 
     // -- Generate order execution summary -- //
-    let output = `Order execution summary (fulfilled open orders up until ${getLocalDateTimeString(endTime)}):\n`
-    output += JSON.stringify(Array.from(filledOrdersPerUser.entries()));
-    return output;
+    return getOrderExecutionSummary(filledOrdersPerUser, endTime);
+}
+
+// Helper function to generate order execution summary
+export function getOrderExecutionSummary(filledOrdersPerUser, endTime, symbol) {
+  let output = `Order execution summary (fulfilled open orders up until ${getLocalDateTimeString(endTime)}):\n\n`
+
+  for (const [user_id, filledOrders] of filledOrdersPerUser) {
+    let userOrders = ''
+    for (const {timestamp, action, num_shares, at_price} of filledOrders) {
+        const dateStr = getLocalDateTimeString(new Date(timestamp));
+        const actionStr = action.toUpperCase().padStart(4, ' ');
+        const numSharesStr = String(num_shares).padStart(2, '0');
+
+        userOrders += `${dateStr}: ${actionStr} ${numSharesStr} shares of $${symbol} at ${at_price}\n`;
+    }
+    
+    output += `<@${user_id}>:\n\`\`\`\n` + userOrders + '```\n'
+  }
+  
+  return output;
 }
 
 
@@ -261,14 +279,19 @@ function convertToLocalTime(date) {
     return date;
 }
 
-// show time in hours and minutes, in current timezone
+// show date as MM/DD, in current timezone
+function getLocalDateString(date) {
+    return convertToLocalTime(date).toLocaleDateString([], { month: "2-digit", day: "2-digit" })
+}
+
+// show time as XX:XX AM/PM, in current timezone
 function getLocalTimeString(date) {
-    return convertToLocalTime(date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    return convertToLocalTime(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 // get date and time in current timezone
 function getLocalDateTimeString(date) {
-    return date.toLocaleString([], {timeZone: 'America/Los_Angeles'});
+    return getLocalDateString(date) + ' ' + getLocalTimeString(date);
 }
 
 // check if two dates are in the same minute.

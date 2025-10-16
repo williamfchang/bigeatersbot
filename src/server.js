@@ -78,8 +78,7 @@ router.get('/manual-order-execution', async (request, env) => {
 router.get('/testing', async (request, env) => {
   const db = env['vitals-stock-market']
   
-  const portfolios = await util.getPortfolios(db, symbol);
-  const content = util.getLeaderboard(portfolios);
+  const content = 'hello'
 
   return new JsonResponse({ message: content });
 })
