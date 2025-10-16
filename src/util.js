@@ -141,9 +141,9 @@ export async function getOpenOrders(db, symbol, user_id) {
 export async function executeOrdersAtOrBefore(db, symbol, endTime) {
     // -- Setup -- //
     // Retrieve open orders before endTime, ordered from earliest to most recent
-    const { results: openOrders } = await db.prepare('SELECT * FROM orders_test WHERE symbol = ? AND timestamp <= ? AND executed = 0 ORDER BY timestamp')
+    const { results: openOrders } = await db.prepare('SELECT * FROM orders WHERE symbol = ? AND timestamp <= ? AND executed = 0 ORDER BY timestamp')
         .bind(symbol, endTime.getTime())
-        .run(); // switchto orders
+        .run();
     
     if (openOrders.length == 0) {
         return 'No open orders, returning';
@@ -199,9 +199,9 @@ export async function executeOrdersAtOrBefore(db, symbol, endTime) {
 
     // -- db updates -- //
     // Mark orders as executed
-    await db.prepare('UPDATE orders_test SET executed = 1 WHERE symbol = ? AND timestamp <= ?')
+    await db.prepare('UPDATE orders SET executed = 1 WHERE symbol = ? AND timestamp <= ?')
         .bind(symbol, endTime.getTime())
-        .run(); // switchto orders
+        .run();
 
     // Update portfolios in db
     for (const [user_id, portfolio] of portfolioPerUser) {
