@@ -163,7 +163,7 @@ export async function executeOrdersAtOrBefore(db, symbol, endTime) {
         // Populate tracking maps if needed
         if (!portfolioPerUser.has(user_id)) {
             portfolioPerUser.set(user_id, { num_shares: 0, balance: 0 });
-            await createPortfolioForUser(db, user_id, symbol); // also create portfolio for user in db
+            // await createPortfolioForUser(db, user_id, symbol); // also create portfolio for user in db
         }
         if (!filledOrdersPerUser.has(user_id)) {
             filledOrdersPerUser.set(user_id, []);
@@ -173,36 +173,40 @@ export async function executeOrdersAtOrBefore(db, symbol, endTime) {
         const stockPrice = await getStockPriceAtTimestamp(db, symbol, timestamp);
         const userPortfolio = portfolioPerUser.get(user_id);
         const numTotalShares = userPortfolio.num_shares;
-        const cost = stockPrice * num_shares;
 
         // Buy/sell
         if (action == 'buy') {
             // Buy
-            userPortfolio.balance -= cost; // purchase using buy power
+            userPortfolio.balance -= stockPrice * num_shares; // purchase using buy power
             userPortfolio.num_shares += num_shares; // acquire this many shares
-            portfolioPerUser.set(user_id, userPortfolio);
         }
         else {
             // Sell
-            let sharesToSell = num_shares;
-            if (numTotalShares < num_shares) { sharesToSell = numTotalShares; } // adjust shares to sell if needed
+            if (numTotalShares < num_shares) { num_shares = numTotalShares; } // adjust shares to sell if needed
 
-            userPortfolio.num_shares -= sharesToSell; // sell this many shares
-            userPortfolio.balance += cost; // gain buy power
-            portfolioPerUser.set(user_id, userPortfolio);
+            userPortfolio.num_shares -= num_shares; // sell this many shares
+            userPortfolio.balance += stockPrice * num_shares; // gain buy power
         }
         
-        // Update filled orders map, then mark order fulfilled in db
+        // Update portfolios map
+        portfolioPerUser.set(user_id, userPortfolio);
+
+        // Update filled orders map
         const filled = filledOrdersPerUser.get(user_id);
         filled.push({'timestamp': timestamp, 'action': action, 'num_shares': num_shares, 'at_price': stockPrice});
         filledOrdersPerUser.set(user_id, filled);
-        // await db.prepare('UPDATE orders_test SET executed = 1 WHERE user_id = ? AND symbol = ? AND timestamp = ?')
-        //     .bind(symbol, user_id, timestamp)
-        //     .run(); // switchto orders
+    }
 
-        // Update portfolio in db
-        await db.prepare('UPDATE portfolios SET num_shares = ?, balance = ? WHERE user_id = ? AND symbol = ?')
-            .bind(portfolioPerUser.get(user_id).num_shares, portfolioPerUser.get(user_id).balance, user_id, symbol)
+    // -- db updates -- //
+    // Mark orders as executed
+    await db.prepare('UPDATE orders_test SET executed = 1 WHERE symbol = ? AND timestamp <= ?')
+        .bind(symbol, endTime.getTime())
+        .run(); // switchto orders
+
+    // Update portfolios in db
+    for (const [user_id, portfolio] of portfolioPerUser) {
+        await db.prepare('INSERT OR REPLACE INTO portfolios (user_id, symbol, num_shares, balance) VALUES (?, ?, ?, ?)')
+            .bind(user_id, symbol, portfolio.num_shares, portfolio.balance)
             .run();
     }
 
