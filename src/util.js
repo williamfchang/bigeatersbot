@@ -70,15 +70,14 @@ export async function getStockPrice(db, symbol) {
         .run();
 
     // Construct output
-    let output = `Stock price of ${symbol} in ${c.DATA_UPLOAD_INTERVAL_MINUTES} min increments (PDT):\n`
+    let output = `Stock price of $${symbol} in ${c.DATA_UPLOAD_INTERVAL_MINUTES} min increments (PDT):\n`
     const dataPointsPerHour = Math.floor(60/c.DATA_UPLOAD_INTERVAL_MINUTES)
 
     for (let i = 0; i < results.length; i += dataPointsPerHour) {
         const firstDate = new Date(results[i].timestamp);
        
         // get hour
-        let currHour = convertToLocalTime(firstDate).getHours()
-        currHour = firstDate.toLocaleTimeString([], { hour: "2-digit" })
+        const currHour = convertToLocalTime(firstDate).toLocaleTimeString([], { hour: "2-digit" })
 
         // get values for this hour
         let arrForCurrHour = results.slice(i, i+dataPointsPerHour).map(entry => String(entry.value));
