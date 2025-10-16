@@ -52,3 +52,8 @@ export const GET_OPEN_ORDERS_COMMAND = {
   name: 'get-open-orders',
   description: 'Get your open orders',
 };
+
+export const EXECUTE_ORDERS_COMMAND = {
+  name: 'execute-orders',
+  description: 'Execute all open orders in the market',
+}

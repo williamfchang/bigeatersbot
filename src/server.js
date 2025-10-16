@@ -130,14 +130,14 @@ router.post('/', async (request, env) => {
         const portfolios = await util.getPortfolios(db, symbol);
         const content = util.getLeaderboard(portfolios);
         
-        return createBotResponse(content, true)
+        return createBotResponse(content, true);
       }
       case commands.GET_PRICE_COMMAND.name.toLowerCase(): {
         console.log('GET_PRICE_COMMAND received');
 
         const content = await util.getStockPrice(db, symbol);
         
-        return createBotResponse(content, true)
+        return createBotResponse(content, true);
       }
       case commands.BUY_COMMAND.name.toLowerCase(): {
         console.log('BUY_COMMAND received');
@@ -146,7 +146,7 @@ router.post('/', async (request, env) => {
 
         const content = await util.newBuyOrder(db, symbol, user_id, amount);
 
-        return createBotResponse(content, false)
+        return createBotResponse(content, false);
       }
       case commands.SELL_COMMAND.name.toLowerCase(): {
         console.log('SELL_COMMAND received');
@@ -155,14 +155,22 @@ router.post('/', async (request, env) => {
 
         const content = await util.newSellOrder(db, symbol, user_id, amount);
 
-        return createBotResponse(content, false)
+        return createBotResponse(content, false);
       }
       case commands.GET_OPEN_ORDERS_COMMAND.name.toLowerCase(): {
         console.log('GET_OPEN_ORDERS_COMMAND received');
 
         const content = await util.getOpenOrders(db, symbol, user_id);
 
-        return createBotResponse(content, true)
+        return createBotResponse(content, true);
+      }
+      case commands.EXECUTE_ORDERS_COMMAND.name.toLowerCase(): {
+        console.log('EXECUTE_ORDERS_COMMAND received');
+
+        const latestTimestamp = await util.getLatestTimestampForStockPriceData(db, symbol);
+        const content = await util.executeOrdersAtOrBefore(db, symbol, new Date(latestTimestamp));
+
+        return createBotResponse(content, false);
       }
       default:
         return new JsonResponse({ error: 'Unknown Type' }, { status: 400 });

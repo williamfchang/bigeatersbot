@@ -211,7 +211,7 @@ export async function executeOrdersAtOrBefore(db, symbol, endTime) {
     }
 
     // -- Generate order execution summary -- //
-    return getOrderExecutionSummary(filledOrdersPerUser, endTime);
+    return getOrderExecutionSummary(filledOrdersPerUser, endTime, symbol);
 }
 
 // Helper function to generate order execution summary
@@ -275,8 +275,9 @@ export async function getStockPriceAtTimestamp(db, symbol, timestamp) {
 // convert UTC to local time with offset.
 // TODO: this is currently hardcoded to PDT
 function convertToLocalTime(date) {
-    date.setHours(date.getHours() - c.PDT_OFFSET);
-    return date;
+    const outputDate = new Date(date);
+    outputDate.setHours(outputDate.getHours() - c.PDT_OFFSET);
+    return outputDate;
 }
 
 // show date as MM/DD, in current timezone
