@@ -234,6 +234,7 @@ export function getOrderExecutionSummary(filledOrdersPerUser, endTime, symbol) {
 }
 
 
+
 // -- General helper functions -- //
 // Start portfolio for a user
 export async function createPortfolioForUser(db, user_id, symbol) {
@@ -267,6 +268,21 @@ export async function getStockPriceAtTimestamp(db, symbol, timestamp) {
         .bind(symbol, timestamp)
         .run();
     return stockPriceResults[0].value;
+}
+
+export async function getNumRealizedAndUnrealizedShares(db, user_id, symbol) {
+    // Get sum of buy orders
+    const { results: totalBuyResults } = await db.prepare("SELECT SUM(num_shares) FROM orders WHERE user_id = ? AND symbol = ? AND action = ?")
+        .bind(user_id, symbol, 'buy')
+        .run();
+    
+    // Get sum of sell orders
+    const { results: totalSellResults } = await db.prepare("SELECT SUM(num_shares) FROM orders WHERE user_id = ? AND symbol = ? AND action = ?")
+        .bind(user_id, symbol, 'sell')
+        .run();
+    
+    // Calculate number of shares
+    return totalBuyResults[0]['SUM(num_shares)'] - totalSellResults[0]['SUM(num_shares)']; 
 }
 
 

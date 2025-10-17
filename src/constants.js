@@ -1,6 +1,7 @@
 // General constants
 export const SYMBOLS = ['WFC-BG'];
 export const NUM_SYMBOLS = SYMBOLS.length;
+export const MAX_TOTAL_SHARES_PER_USER = 100;
 
 // Data upload command
 export const DATA_UPLOAD_INTERVAL_MINUTES = 5;

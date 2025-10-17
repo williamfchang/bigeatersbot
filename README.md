@@ -61,8 +61,8 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
 
 ### TODO (for me)
 - Trading limit changes
-  - trading window 10am-2am
-  - 100 shares can be bought per day (trading window)
+  - You can only own 100 shares at a time
+  - Trading window of 10am to 2am
 - Improvements
   - better leaderboard output
   - create graph for glucose values

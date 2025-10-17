@@ -12,6 +12,7 @@ import {
 
 import * as commands from './commands.js';
 import * as util from './util.js';
+import * as c from './constants.js';
 
 class JsonResponse extends Response {
   constructor(body, init) {
@@ -81,7 +82,8 @@ router.get('/manual-order-execution', async (request, env) => {
 router.get('/testing', async (request, env) => {
   const db = env['vitals-stock-market']
   
-  const content = 'hello'
+  const user_id = '150093212034269184';
+  const content = await util.getNumRealizedAndUnrealizedShares(db, user_id, symbol);
 
   return new JsonResponse({ message: content });
 })
@@ -147,6 +149,13 @@ router.post('/', async (request, env) => {
 
         const amount = interaction.data.options[0].value;
 
+        // Early exit if user would surpass 100 shares
+        const numTotalShares = await util.getNumRealizedAndUnrealizedShares(db, user_id, symbol);
+        if (numTotalShares + amount >= c.MAX_TOTAL_SHARES_PER_USER) {
+          return createBotResponse(`Order unsuccessful, you are at \`${numTotalShares}\` shares (including unrealized orders) and would surpass the max of \`${c.MAX_TOTAL_SHARES_PER_USER}\` shares`, true);
+        }
+        
+        // Otherwise, create buy order
         const content = await util.newBuyOrder(db, symbol, user_id, amount);
 
         return createBotResponse(content, false);
@@ -155,6 +164,12 @@ router.post('/', async (request, env) => {
         console.log('SELL_COMMAND received');
 
         const amount = interaction.data.options[0].value;
+
+        // Early exit if user would go below 0 shares
+        const numTotalShares = await util.getNumRealizedAndUnrealizedShares(db, user_id, symbol);
+        if (numTotalShares - amount < 0) {
+          return createBotResponse(`Order unsuccessful, you are at \`${numTotalShares}\` shares (including unrealized orders) and would go below 0 shares`, true);
+        }
 
         const content = await util.newSellOrder(db, symbol, user_id, amount);
 
