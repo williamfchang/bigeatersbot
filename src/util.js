@@ -125,14 +125,21 @@ export async function getOpenOrders(db, symbol, user_id) {
         .bind(user_id, symbol)
         .run()
     
-    let output = `Open orders for <@${user_id}>:\n`
-
-    for (const row of results) {
-        const date = new Date(row.timestamp)
-        output += `- $${row.symbol} @ ${getLocalTimeString(date)}: ${row.action.toUpperCase()} ${row.num_shares} shares\n`
+    if (results.length == 0) {
+        return 'You have no open orders';
     }
     
-    return output;
+    let output = `\`${results.length}\` open orders for <@${user_id}>:\n\`\`\`\n`
+
+    for (const row of results) {
+        const dateStr = getLocalDateTimeString(new Date(row.timestamp))
+        const actionStr = row.action.toUpperCase().padStart(4, ' ');
+        const numSharesStr = String(row.num_shares).padStart(2, '0');
+
+        output += `${dateStr}: ${actionStr} ${numSharesStr} of $${symbol}\n`
+    }
+    
+    return output + '```';
 }
 
 // Execute orders before endTime. Note that both stock price timestamps and order timestamps are rounded to nearest 5th minute
@@ -145,7 +152,7 @@ export async function executeOrdersAtOrBefore(db, symbol, endTime) {
         .run();
     
     if (openOrders.length == 0) {
-        return 'No open orders that can be fulfilled';
+        return `No open orders that can be fulfilled, latest data is \`${getLocalDateTimeString(endTime)}\``;
     }
     
     // Create some tracking variables
@@ -285,52 +292,92 @@ export async function getNumRealizedAndUnrealizedShares(db, user_id, symbol) {
     return totalBuyResults[0]['SUM(num_shares)'] - totalSellResults[0]['SUM(num_shares)']; 
 }
 
+export function inTradingWindow(date) {
+    // Check "today's" trading window
+    let openTime = new Date()
+    openTime.setHours(c.TRADING_OPEN_HOUR_UTC)
+    openTime = removeHoursAndSeconds(openTime)
+    
+    let closeTime = new Date(openTime)
+    closeTime.setHours(closeTime.getHours() + c.TRADING_WINDOW_LENGTH_HOURS)
+
+    if (date >= openTime && date < closeTime) {
+        return true;
+    }
+
+    // Check "yesterday's" trading window
+    openTime.setDate(openTime.getDate() - 1)
+    closeTime.setDate(closeTime.getDate() - 1)
+
+    if (date >= openTime && date < closeTime) {
+        return true;
+    }
+
+    // Check "tomorrow's" trading window
+    openTime.setDate(openTime.getDate() + 2)
+    closeTime.setDate(closeTime.getDate() + 2)
+
+    if (date >= openTime && date < closeTime) {
+        return true;
+    }
+
+    // not in any window, so it is closed
+    return false;
+}
+
+export function getTradingOffHoursString() {
+    let openTime = new Date()
+    openTime.setHours(c.TRADING_OPEN_HOUR_UTC)
+    openTime = removeHoursAndSeconds(openTime)
+    
+    let closeTime = new Date(openTime)
+    closeTime.setHours(closeTime.getHours() + c.TRADING_WINDOW_LENGTH_HOURS)
+
+    return `${getLocalTimeString(closeTime)} - ${getLocalTimeString(openTime)}`
+}
+
 
 // -- Date helper functions -- //
 // convert UTC to local time with offset.
 // TODO: this is currently hardcoded to PDT
-function convertToLocalTime(date) {
+export function convertToLocalTime(date) {
     const outputDate = new Date(date);
-    outputDate.setHours(outputDate.getHours() - c.PDT_OFFSET);
+    outputDate.setHours(outputDate.getHours() + c.PDT_OFFSET);
     return outputDate;
 }
 
 // show date as MM/DD, in current timezone
-function getLocalDateString(date) {
+export function getLocalDateString(date) {
     return convertToLocalTime(date).toLocaleDateString([], { month: "2-digit", day: "2-digit" })
 }
 
 // show time as XX:XX AM/PM, in current timezone
-function getLocalTimeString(date) {
+export function getLocalTimeString(date) {
     return convertToLocalTime(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 // get date and time in current timezone
-function getLocalDateTimeString(date) {
+export function getLocalDateTimeString(date) {
     return getLocalDateString(date) + ' ' + getLocalTimeString(date);
 }
 
-// check if two dates are in the same minute.
-// aka, 1:05:10 AM and 1:05:55 AM are both in the same minute 1:05 AM, but 1:05:55 AM and 1:06:00 AM are not
-function sameMinute(date1, date2) {
-    return (
-        date1.getFullYear() === date2.getFullYear() &&
-        date1.getMonth() === date2.getMonth() &&
-        date1.getDate() === date2.getDate() &&
-        date1.getHours() === date2.getHours() &&
-        date1.getMinutes() === date2.getMinutes()
-    );
-}
-
 // interval i means data is uploaded every i minutes
-function roundDownDateToNearestInterval(date) {
+export function roundDownDateToNearestInterval(date) {
     const surplusMinutes = date.getMinutes() % c.DATA_UPLOAD_INTERVAL_MINUTES
     date.setMinutes(date.getMinutes()-surplusMinutes)
     return removeSeconds(date)
 }
 
 // set to XX:XX:00.000
-function removeSeconds(date) {
+export function removeSeconds(date) {
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
+}
+
+// set to XX:00:00.000
+export function removeHoursAndSeconds(date) {
+    date.setMinutes(0);
     date.setSeconds(0);
     date.setMilliseconds(0);
     return date;

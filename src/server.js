@@ -82,10 +82,12 @@ router.get('/manual-order-execution', async (request, env) => {
 router.get('/testing', async (request, env) => {
   const db = env['vitals-stock-market']
   
-  const user_id = '150093212034269184';
-  const content = await util.getNumRealizedAndUnrealizedShares(db, user_id, symbol);
+  // const user_id = '150093212034269184';
+  const date = new Date();
+  date.setHours(date.getHours() + 13);
+  const content = util.inTradingWindow(date);
 
-  return new JsonResponse({ message: content });
+  return new JsonResponse({ message: `${util.getLocalDateTimeString(date)} in trading window? ${content}` });
 })
 
 
@@ -147,9 +149,13 @@ router.post('/', async (request, env) => {
       case commands.BUY_COMMAND.name.toLowerCase(): {
         console.log('BUY_COMMAND received');
 
-        const amount = interaction.data.options[0].value;
+        // Early exit if trading window is closed
+        if (!util.inTradingWindow(new Date())) {
+          return createBotResponse(`Order unsuccessful, trading is closed between \`${util.getTradingOffHoursString()}\``, true);
+        }
 
         // Early exit if user would surpass 100 shares
+        const amount = interaction.data.options[0].value;
         const numTotalShares = await util.getNumRealizedAndUnrealizedShares(db, user_id, symbol);
         if (numTotalShares + amount >= c.MAX_TOTAL_SHARES_PER_USER) {
           return createBotResponse(`Order unsuccessful, you are at \`${numTotalShares}\` shares (including unrealized orders) and would surpass the max of \`${c.MAX_TOTAL_SHARES_PER_USER}\` shares`, true);
@@ -163,9 +169,13 @@ router.post('/', async (request, env) => {
       case commands.SELL_COMMAND.name.toLowerCase(): {
         console.log('SELL_COMMAND received');
 
-        const amount = interaction.data.options[0].value;
+        // Early exit if trading window is closed
+        if (!util.inTradingWindow(new Date())) {
+          return createBotResponse(`Order unsuccessful, trading is closed between \`${util.getTradingOffHoursString()}\``, true);
+        }
 
         // Early exit if user would go below 0 shares
+        const amount = interaction.data.options[0].value;
         const numTotalShares = await util.getNumRealizedAndUnrealizedShares(db, user_id, symbol);
         if (numTotalShares - amount < 0) {
           return createBotResponse(`Order unsuccessful, you are at \`${numTotalShares}\` shares (including unrealized orders) and would go below 0 shares`, true);

@@ -10,4 +10,8 @@ export const DATA_UPLOAD_INTERVAL_MINUTES = 5;
 export const MAX_LEADERBOARD_ENTRIES = 25;
 
 // Get price command
-export const PDT_OFFSET = 7;
+export const PDT_OFFSET = -7;
+
+// Trading window is 11am to 2am PDT
+export const TRADING_OPEN_HOUR_UTC = 11 - PDT_OFFSET;
+export const TRADING_WINDOW_LENGTH_HOURS = 14;

@@ -61,8 +61,8 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
 
 ### TODO (for me)
 - Trading limit changes
-  - You can only own 100 shares at a time
-  - Trading window of 10am to 2am
+  - You can only own 100 shares at a time -> DONE
+  - Trading window of 11am to 1am -> DONE
 - Improvements
   - better leaderboard output
   - create graph for glucose values
@@ -74,7 +74,7 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
   - orders (order_id, symbol, username, timestamp, action, amount, executed)
   - portfolios (username, symbol, amount) -> symbol: $CASH is earnings
   - stock_price (symbol, time, value)
-- Create functionality for each command
+- Create functionality for each command -> DONE
   - leaderboard -> DONE
   - getprice -> DONE
   - buy -> DONE
@@ -82,5 +82,5 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
 - Create get endpoint for uploading data
   - takes parameters stock, startTime, values -> done
   - stores any new data points in stockPrice -> done
-- execute any buy/sell orders for new data upload
+- execute any buy/sell orders for new data upload -> DONE
   - test this in a test table!!
