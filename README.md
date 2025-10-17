@@ -59,13 +59,8 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
 |`/sell <num>`|Send sell order of `num` of shares, for the current time. Your sell order will be executed once stock price updates.|`num` <= 20. While you can make the sell order even if you don't enough shares, the order would fail on execution.|
 |`/get-open-orders`|List your orders that haven't been executed yet||
 
-### TODO (for me)
-- Trading limit changes
-  - You can only own 100 shares at a time -> DONE
-  - Trading window of 11am to 1am -> DONE
-- Improvements
-  - better leaderboard output
-  - create graph for glucose values
+## TODO
+nothing for now!
 
 ### old TODO
 - Register the discord commands -> DONE
@@ -84,3 +79,9 @@ For a more detailed description: For two weeks October 2025 I have a glucose mon
   - stores any new data points in stockPrice -> done
 - execute any buy/sell orders for new data upload -> DONE
   - test this in a test table!!
+- Trading limit changes
+  - You can only own 100 shares at a time -> DONE
+  - Trading window of 11am to 1am -> DONE
+- Improvements
+  - better leaderboard output -> DONE
+  - create graph for glucose values -> might just be impossible ...
