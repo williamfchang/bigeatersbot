@@ -157,7 +157,7 @@ router.post('/', async (request, env) => {
         // Early exit if user would surpass 100 shares
         const amount = interaction.data.options[0].value;
         const numTotalShares = await util.getNumRealizedAndUnrealizedShares(db, user_id, symbol);
-        if (numTotalShares + amount >= c.MAX_TOTAL_SHARES_PER_USER) {
+        if (numTotalShares + amount > c.MAX_TOTAL_SHARES_PER_USER) {
           return createBotResponse(`Order unsuccessful, you are at \`${numTotalShares}\` shares (including unrealized orders) and would surpass the max of \`${c.MAX_TOTAL_SHARES_PER_USER}\` shares`, true);
         }
         
