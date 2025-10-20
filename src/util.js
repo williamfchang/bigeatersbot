@@ -47,13 +47,12 @@ export async function writeStockValuesToDb(db, symbol, startTime, values) {
 // With portfolio info, create leaderboard output
 export async function getLeaderboard(db, symbol) {
     // get portfolios
-    let portfolios = await getPortfolios(db, symbol);
-    portfolios = await addNumTotalSharesForAllUsers(db, portfolios);
+    const portfolios = await getPortfolios(db, symbol);
 
     // Create leaderboard output string
-    let output = "Leaderboard (total shares = fulfilled + unfulfilled):\n";
+    let output = "Leaderboard ($WFC-BG closes Thurs 10/23)\n";
     for (const {user_id, symbol, num_shares, balance, num_total_shares} of portfolios) {
-        output += `1. <@${user_id}>: \`${balance}\` profit / \`${num_shares}\` fulfilled shares / \`${num_total_shares}\` total shares \n`;
+        output += `1. <@${user_id}>: \`${balance}\` profit / \`${num_shares}\` shares\n`;
     }
 
     return output;
@@ -132,8 +131,10 @@ export async function getOpenOrders(db, symbol, user_id) {
     if (results.length == 0) {
         return 'You have no open orders';
     }
+
+    const numTotalOrders = await getNumTotalShares(db, user_id, symbol);
     
-    let output = `\`${results.length}\` open orders for <@${user_id}>:\n\`\`\`\n`
+    let output = `\`${results.length}\` open orders for <@${user_id}> (\`${numTotalOrders}\` unfulfilled + fulfilled shares):\n\`\`\`\n`
 
     for (const row of results) {
         const dateStr = getLocalDateTimeString(new Date(row.timestamp))
