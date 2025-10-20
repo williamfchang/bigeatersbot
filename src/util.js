@@ -45,11 +45,15 @@ export async function writeStockValuesToDb(db, symbol, startTime, values) {
 }
 
 // With portfolio info, create leaderboard output
-export function getLeaderboard(portfolios) {
+export async function getLeaderboard(db, symbol) {
+    // get portfolios
+    let portfolios = await getPortfolios(db, symbol);
+    portfolios = await addNumTotalSharesForAllUsers(db, portfolios);
+
     // Create leaderboard output string
-    let output = "Leaderboard:\n";
-    for (const {user_id, symbol, num_shares, balance} of portfolios) {
-        output += `1. <@${user_id}>: \`${balance}\` profit / \`${num_shares}\` shares\n`;
+    let output = "Leaderboard (total shares = fulfilled + unfulfilled):\n";
+    for (const {user_id, symbol, num_shares, balance, num_total_shares} of portfolios) {
+        output += `1. <@${user_id}>: \`${balance}\` profit / \`${num_shares}\` fulfilled shares / \`${num_total_shares}\` total shares \n`;
     }
 
     return output;
@@ -277,7 +281,8 @@ export async function getStockPriceAtTimestamp(db, symbol, timestamp) {
     return stockPriceResults[0].value;
 }
 
-export async function getNumRealizedAndUnrealizedShares(db, user_id, symbol) {
+// Get all fulfilled and unfulfilled shares
+export async function getNumTotalShares(db, user_id, symbol) {
     // Get sum of buy orders
     const { results: totalBuyResults } = await db.prepare("SELECT SUM(num_shares) FROM orders WHERE user_id = ? AND symbol = ? AND action = ?")
         .bind(user_id, symbol, 'buy')
@@ -290,6 +295,18 @@ export async function getNumRealizedAndUnrealizedShares(db, user_id, symbol) {
     
     // Calculate number of shares
     return totalBuyResults[0]['SUM(num_shares)'] - totalSellResults[0]['SUM(num_shares)']; 
+}
+
+// add fulfilled/unfulfilled shares for all users to portfolio object. used for leaderboard
+export async function addNumTotalSharesForAllUsers(db, portfolios) {
+    for (const [index, value] of portfolios.entries()) {
+        const { user_id, symbol, num_shares, balance } = value;
+
+        const numTotalShares = await getNumTotalShares(db, user_id, symbol);
+        portfolios[index].num_total_shares = numTotalShares;
+    }
+
+    return portfolios;
 }
 
 export function inTradingWindow(date) {
