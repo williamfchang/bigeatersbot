@@ -24,11 +24,10 @@ export const BUY_COMMAND = {
   options: [
     {
       name: 'quantity',
-      description: 'The number of shares to buy (max 20)',
+      description: 'The number of shares to buy (no max!!!)',
       type: 4, // INTEGER
       required: true,
-      min_value: 0,
-      max_value: 20
+      min_value: 0
     },
   ],
 };
@@ -39,11 +38,10 @@ export const SELL_COMMAND = {
   options: [
     {
       name: 'quantity',
-      description: 'The number of shares to sell (max 20)',
+      description: 'The number of shares to sell (no max!!!)',
       type: 4, // INTEGER
       required: true,
-      min_value: 0,
-      max_value: 20
+      min_value: 0
     },
   ],
 };

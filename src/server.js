@@ -82,9 +82,9 @@ router.get('/manual-order-execution', async (request, env) => {
 router.get('/testing', async (request, env) => {
   const db = env['vitals-stock-market']
   
-  const content = await util.getLeaderboard(db, symbol);
-  // let portfolios = await util.getPortfolios(db, symbol);
-  // portfolios = await util.addNumTotalSharesForAllUsers(db, portfolios);
+  const user_id = '150093212034269184'
+  const amount = 100
+  const content = await util.newBuyOrder(db, symbol, user_id, amount);
 
   return content;
 })
@@ -148,18 +148,19 @@ router.post('/', async (request, env) => {
         console.log('BUY_COMMAND received');
 
         // Early exit if trading window is closed
-        if (!util.inTradingWindow(new Date())) {
-          return createBotResponse(`Order unsuccessful, trading is closed between \`${util.getTradingOffHoursString()}\``, true);
-        }
+        // if (!util.inTradingWindow(new Date())) {
+        //   return createBotResponse(`Order unsuccessful, trading is closed between \`${util.getTradingOffHoursString()}\``, true);
+        // }
 
         // Early exit if user would surpass 100 shares
-        const amount = interaction.data.options[0].value;
-        const numTotalShares = await util.getNumTotalShares(db, user_id, symbol);
-        if (numTotalShares + amount > c.MAX_TOTAL_SHARES_PER_USER) {
-          return createBotResponse(`Order unsuccessful, you are at \`${numTotalShares}\` shares (including unrealized orders) and would surpass the max of \`${c.MAX_TOTAL_SHARES_PER_USER}\` shares`, true);
-        }
+        // const amount = interaction.data.options[0].value;
+        // const numTotalShares = await util.getNumTotalShares(db, user_id, symbol);
+        // if (numTotalShares + amount > c.MAX_TOTAL_SHARES_PER_USER) {
+        //   return createBotResponse(`Order unsuccessful, you are at \`${numTotalShares}\` shares (including unrealized orders) and would surpass the max of \`${c.MAX_TOTAL_SHARES_PER_USER}\` shares`, true);
+        // }
         
         // Otherwise, create buy order
+        const amount = interaction.data.options[0].value;
         const content = await util.newBuyOrder(db, symbol, user_id, amount);
 
         return createBotResponse(content, false);
@@ -168,9 +169,9 @@ router.post('/', async (request, env) => {
         console.log('SELL_COMMAND received');
 
         // Early exit if trading window is closed
-        if (!util.inTradingWindow(new Date())) {
-          return createBotResponse(`Order unsuccessful, trading is closed between \`${util.getTradingOffHoursString()}\``, true);
-        }
+        // if (!util.inTradingWindow(new Date())) {
+        //   return createBotResponse(`Order unsuccessful, trading is closed between \`${util.getTradingOffHoursString()}\``, true);
+        // }
 
         // Early exit if user would go below 0 shares
         const amount = interaction.data.options[0].value;
