@@ -63,9 +63,9 @@ export async function getLeaderboard(db, symbol) {
 export async function getStockPrice(db, symbol) {
     // Get curr time and time 24 hours ago (starting at top of the hour)
     const currDate = new Date();
-    const dateOneDayAgo = new Date(currDate);
+    let dateOneDayAgo = new Date(currDate);
     dateOneDayAgo.setHours(dateOneDayAgo.getHours() - 24);
-    dateOneDayAgo.setMinutes(0);
+    dateOneDayAgo = removeMinutesAndSeconds(dateOneDayAgo);
 
     // Get values from db
     const { results } = await db.prepare("SELECT timestamp, value FROM stock_price WHERE symbol = ? AND timestamp >= ? AND timestamp <= ?")
@@ -314,7 +314,7 @@ export function inTradingWindow(date) {
     // Check "today's" trading window
     let openTime = new Date()
     openTime.setHours(c.TRADING_OPEN_HOUR_UTC)
-    openTime = removeHoursAndSeconds(openTime)
+    openTime = removeMinutesAndSeconds(openTime)
     
     let closeTime = new Date(openTime)
     closeTime.setHours(closeTime.getHours() + c.TRADING_WINDOW_LENGTH_HOURS)
@@ -346,7 +346,7 @@ export function inTradingWindow(date) {
 export function getTradingOffHoursString() {
     let openTime = new Date()
     openTime.setHours(c.TRADING_OPEN_HOUR_UTC)
-    openTime = removeHoursAndSeconds(openTime)
+    openTime = removeMinutesAndSeconds(openTime)
     
     let closeTime = new Date(openTime)
     closeTime.setHours(closeTime.getHours() + c.TRADING_WINDOW_LENGTH_HOURS)
@@ -394,7 +394,7 @@ export function removeSeconds(date) {
 }
 
 // set to XX:00:00.000
-export function removeHoursAndSeconds(date) {
+export function removeMinutesAndSeconds(date) {
     date.setMinutes(0);
     date.setSeconds(0);
     date.setMilliseconds(0);
